@@ -1,0 +1,167 @@
+PID
+PID2
+Interviewer_ID
+Q1 years lived in current community
+Q3 how satisfied/dissatisfied with living in current community (the higher the more satisfied)
+Q4 think whether will still be living in current community two years into the future (no/yes)
+Q5 how often felt like belong in community in the past 6 months (the higher the more often)
+Q6 how often felt out of place in community in the past 6 months (the higher the more often)
+Q8 whether there is at least one person to confide in (no/yes)
+Q9 whether there is someone in life to receive emotional support from (no/yes)
+Q13 whether there is someone who would give financial assistance (no/yes)
+Q15 age
+Q19 whether regularly smoked cigarettes before (no/yes)
+Q20 how old first time smoked a cigarette (age, or never smoked)
+Q21* whether smoked cigarettes in the past 6 months (no/yes)
+Q22* how many cigarettes usually smoke in a day (the higher the more counts)
+Q23 whether vaped or used electronic cigarettes with nicotine before (no/yes)
+Q24* how old first time vaped or used electronic cigarettes with nicotine (age)
+Q25* whether vaped or used electronic cigarettes with nicotine in the past 6 months (no/yes)
+Q26* how many days vaped or used electronic cigarettes with nicotine in the past 30 days (the higher the more days)
+Q27 whether regularly used smokeless tobacco before (no/yes)
+Q28* how old first time used smokeless tobacco (age)
+Q29* whether used smokeless tobacco in the past 6 months (no/yes)
+Q30* how many days used smokeless tobacco in the past 30 days (the higher the more days)
+Q31 how old when first started drinking, including sips (age, never drank, or don't know)
+Q32* how old when first started drinking, NOT including sips (age, or don't know)
+Q33* how old when first started drinking to the point of intoxication (age, or don't know)
+Q34* whether drank any alcohol in the past 6 months (no/yes)
+Q35* how often drank alcohol in the past 30 days (the higher the more often)
+Q36* how often had 5 or more (men/males) or 4 or more (women/females) alcoholic drinks in one sitting in the past 30 days (the higher the more often)
+Q38 whether used a needle to inject a drugs before (no/yes)
+Q39* age first injected any drug, other than those prescribed
+Q40* how often injected any drug in the past 6 months (the higher the more often)
+Q41* how often injected heroin in the past 6 months (the higher the more often)
+Q42* how often injected prescription opioids in the past 6 months (the higher the more often)
+Q43* how often injected methamphetamine in the past 6 months (the higher the more often)
+Q44* how often injected cocaine in the past 6 months (the higher the more often)
+Q45* how often injected a heroin and cocaine speedball in the past 6 months (the higher the more often)
+Q46* how often injected a heroin and methamphetamine speedball in the past 6 months (the higher the more often)
+Q47* how often injected crack cocaine in the past 6 months (the higher the more often)
+Q48* how often injected buprenorphine in the past 6 months (the higher the more often)
+Q49* how often injected sth else in the past 6 months (the higher the more often)
+Q50* other drug injected
+Q51_R1* kind of places/locations typically injected drugs in, slot 1
+Q51_R2* kind of places/locations typically injected drugs in, slot 2
+Q51_R3* kind of places/locations typically injected drugs in, slot 3
+Q51_R4* kind of places/locations typically injected drugs in, slot 4
+Q52* how often used a new, sterile needle during injection in the past 6 months (the higher the more often)
+Q53* how often used needles that someone else had already injected with during injection in the past 6 months (the higher the more often)
+Q54* whether injected with someone i.e., shared drugs and/or equipment during injection in the past 6 months (no/yes)
+Q55* whether used a new sterile needle to inject during the last time injected with someone (no/yes)
+Q56* whether used a needle after anyone else had already injected with it (no/yes)
+Q57* whether with one person or with more than one person during the last time injected with someone (no/yes)
+Q68 how often used marijuana in the past 6 months (the higher the more often)
+Q69* how old when first used marijuana
+Q70* how old when regularly used marijuana
+Q71 how often used cocaine (non-injection) in the past 6 months (the higher the more often)
+Q72 how often used Ecstasy/MDMA in the past 6 months (the higher the more often)
+Q73 how often used PCP/angel dust in the past 6 months (the higher the more often)
+Q74 how often used amphetamines in the past 6 months (the higher the more often)
+Q75 how often used methamphetamine in the past 6 months (the higher the more often)
+Q76 how often used barbiturates in the past 6 months (the higher the more often)
+Q77 how often used benzodiazepines in the past 6 months (the higher the more often)
+Q78 how often used opiates/opioids in the past 6 months (the higher the more often)
+Q79 how often used heroin (non-injection) in the past 6 months (the higher the more often)
+Q80 how often used something else not already listed in the past 6 months (the higher the more often)
+Q81* other non-injection substance used
+Q84_R1 kind of places/locations typically used non-injection drugs in, slot 1
+Q84_R2 kind of places/locations typically used non-injection drugs in, slot 2
+Q84_R3 kind of places/locations typically used non-injection drugs in, slot 3
+Q84_R4 kind of places/locations typically used non-injection drugs in, slot 4
+Q86 whether they think there is more/less of marijuana available now than there was a year ago (more->less, or don't know)
+Q87 whether they think there is more/less of methamphetamine available now than there was a year ago (more->less, or don't know)
+Q88 whether they think there is more/less of cocaine available now than there was a year ago (more->less, or don't know)
+Q89 whether they think there is more/less of heroin available now than there was a year ago (more->less, or don't know)
+Q90 whether they think there is more/less of opiates/opioids available now than there was a year ago (more->less, or don't know)
+Q91 whether they think there is more/less of benzodiazepines available now than there was a year ago (more->less, or don't know)
+Q92 whether they think there is more/less of Ecstasy/MDMA available now than there was a year ago (more->less, or don't know)
+Q93 how easy/hard to get marijuana (hard->easy, or don't know)
+Q94 how easy/hard to get methamphetamine (hard->easy, or don't know)
+Q95 how easy/hard to get cocaine (hard->easy, or don't know)
+Q96 how easy/hard to get heroin (hard->easy, or don't know)
+Q97 how easy/hard to get opiates/opioids (hard->easy, or don't know)
+Q98 how easy/hard to get benzodiazepines (hard->easy, or don't know)
+Q99 how easy/hard to get Ecstasy/MDMA (hard->easy, or don't know)
+Q100_R1 whether generally use alcohol during morning (5am-noon) on an average weekday
+Q100_R2 whether generally use alcohol during afternoon (noon-5pm) on an average weekday
+Q100_R3 whether generally use alcohol during evening (5pm-midnight) on an average weekday
+Q100_R4 whether generally use alcohol during night (midnight-5am) on an average weekday
+Q100_R5 whether don't drink during the week
+Q101_R1 whether generally use alcohol during morning (5am-noon) on an average weekend
+Q101_R2 whether generally use alcohol during afternoon (noon-5pm) on an average weekend
+Q101_R3 whether generally use alcohol during evening (5pm-midnight) on an average weekend
+Q101_R4 whether generally use alcohol during night (midnight-5am) on an average weekend
+Q101_R5 whether don't drink on the weekend
+Q102_R1 whether generally use recreational drugs during morning (5am-noon) on an average weekday
+Q102_R2 whether generally use recreational drugs during afternoon (noon-5pm) on an average weekday
+Q102_R3 whether generally use recreational drugs during evening (5pm-midnight) on an average weekday
+Q102_R4 whether generally use recreational drugs during night (midnight-5am) on an average weekday
+Q103_R1 whether generally use marijuana on an average weekday
+Q103_R2 whether generally use Cocaine on an average weekday
+Q103_R3 whether generally use Ecstasy/MDMA on an average weekday
+Q103_R4 whether generally use PCP on an average weekday
+Q103_R5 whether generally use Amphetamines on an average weekday
+Q103_R6 whether generally use Methamphetamine on an average weekday
+Q103_R7 whether generally use Barbiturates on an average weekday
+Q103_R8 whether generally use Benzodiazepines on an average weekday
+Q103_R9 whether generally use Opiates/Opioids on an average weekday
+Q103_R10 whether generally use Heroin on an average weekday
+Q103_R11 whether generally use some other drug on an average weekday
+Q103_R11_Other name of drug generally use on an average weekday not listed in Q103_R11
+Q104_R1 whether generally use recreational drugs during morning (5am-noon) on an average weekend
+Q104_R2 whether generally use recreational drugs during afternoon (noon-5pm) on an average weekend
+Q104_R3 whether generally use recreational drugs during evening (5pm-midnight) on an average weekend
+Q104_R4 whether generally use recreational drugs during night (midnight-5am) on an average weekend
+Q104_R5 whether don't use recreational drugs on the weekend
+Q105_R1 whether generally use marijuana on an average weekend
+Q105_R2 whether generally use Cocaine on an average weekend
+Q105_R3 whether generally use Ecstasy/MDMA on an average weekend
+Q105_R4 whether generally use PCP on an average weekend
+Q105_R5 whether generally use Amphetamines on an average weekend
+Q105_R6 whether generally use Methamphetamine on an average weekend
+Q105_R7 whether generally use Barbiturates on an average weekend
+Q105_R8 whether generally use Benzodiazepines on an average weekend
+Q105_R9 whether generally use Opiates/Opioids on an average weekend
+Q105_R10 whether generally use Heroin on an average weekend
+Q105_R11 whether generally use some other drug on an average weekend
+Q105_R11_Other name of drug generally use on an average weekend not listed in Q105_R11
+Q108 whether suffered a drug overdose before (no/yes)
+Q109* whether suffered a drug overdose in the past 6 months (no/yes)
+Q113 whether know anyone who has suffered a drug overdose (no/yes)
+Q114* whether know anyone who has suffered a drug overdose in the past 6 months (no/yes)
+Q115* whether seen someone overdose on drugs before (no/yes)
+Q116* whether seen someone overdose on drugs in the past 6 months (no/yes)
+Q117* whether know anyone who has died from a drug overdose (no/yes)
+Q118* whether know anyone who has died from a drug overdose in the past 6 months (no/yes)
+Q119_R1 whether been to outpatient treatment program before (no/yes)
+Q119_R2 whether been to inpatient/residential treatment program before (no/yes)
+Q119_R3 whether been to detox treatment program before (no/yes)
+Q119_R4 whether been to methadone/suboxone treatment program before (no/yes)
+Q119_R5 whether been to 12-step alcohol treatment program before (no/yes)
+Q119_R6 whether been to 12-step drug treatment program before (no/yes)
+Q119_R7 whether been to some other treatment program before (no/yes)
+Q119_R7_Other treatment program been to other than listed
+Q120_R1 whether currently attending/enrolled in outpatient treatment program (no/yes)
+Q120_R2 whether currently attending/enrolled in inpatient/residential treatment program (no/yes)
+Q120_R3 whether currently attending/enrolled in detox treatment program (no/yes)
+Q120_R4 whether currently attending/enrolled in methadone/suboxone treatment program (no/yes)
+Q120_R5 whether currently attending/enrolled in 12-step alcohol treatment program (no/yes)
+Q120_R6 whether currently attending/enrolled in 12-step drug treatment program (no/yes)
+Q120_R7 whether currently attending/enrolled in some other treatment program (no/yes)
+Q120_R7_Other treatment program currently attending/enrolled in other than listed
+Q196 how concerned they are about the police when using drugs (the higher the more concerned)
+Q197 how concerned they are about the police when buying or selling drugs (the higher the more concerned)
+Q198 whether been incarcerated before (no/yes)
+Q199 whether been incarcerated in the past 6 months (no/yes)
+Q203 current marital status (married->never married)
+Q204 highest level of education completed (the higher the more educated)
+Q205 current employment status (employed full-time -> unemployed, or other)
+Q207 religion
+Q207_R5 religion other than listed
+Q208 movement within the Protestant faith
+Q208_R4 movement other than listed
+Q209 how often attend religious services (the higher the more often)
+Q210 how much religious/spiritual beliefs influence daily life in general (the higher the more)
+Q212 whether been homeless before (no/yes)
+Q221 total household income in last 12 months (the higher the more)
