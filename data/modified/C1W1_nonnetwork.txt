@@ -11,7 +11,6 @@ SC13 whether there is someone who would give financial assistance (no/yes)
 DM1 age
 TB1 whether regularly smoked cigarettes before (no/yes)
 TB2 how old first time smoked a cigarette (age, or never smoked)
-TB2_4_TEXT* age filled from TB2
 TB3* whether smoked cigarettes in the past 6 months (no/yes)
 TB4* how many cigarettes usually smoke in a day (the higher the more counts)
 TB5 whether vaped or used electronic cigarettes with nicotine before (no/yes)
@@ -23,15 +22,11 @@ TB10* how old first time used smokeless tobacco (age)
 TB11* whether used smokeless tobacco in the past 6 months (no/yes)
 TB12* how many days used smokeless tobacco in the past 30 days (the higher the more days)
 AL1 how old when first started drinking, including sips (age, never drank, or don't know)
-AL1_4_TEXT* age filled from AL1
 AL2* how old when first started drinking, NOT including sips (age, or don't know)
-AL2_1_TEXT* age filled from AL2
 AL3* how old when first started drinking to the point of intoxication (age, or don't know)
-AL3_1_TEXT* age filled from AL3
 AL4* whether drank any alcohol in the past 6 months (no/yes)
 AL5* how often drank alcohol in the past 30 days (the higher the more often)
-AL6A* (for men/males) how often had 5 or more alcoholic drinks in one sitting in the past 30 days (the higher the more often)
-AL6B* (for women/females) how often had 4 or more alcoholic drinks in one sitting in the past 30 days (the higher the more often)
+AL6* how often had 5 or more (men/males) or 4 or more (women/females) alcoholic drinks in one sitting in the past 30 days (the higher the more often)
 ID1 whether used a needle to inject a drugs before (no/yes)
 ID2* age first injected any drug, other than those prescribed
 ID3* how often injected any drug in the past 6 months (the higher the more often)
@@ -44,11 +39,8 @@ ID9* how often injected a heroin and methamphetamine speedball in the past 6 mon
 ID10* how often injected crack cocaine in the past 6 months (the higher the more often)
 ID11* how often injected buprenorphine in the past 6 months (the higher the more often)
 ID12* how often injected sth else in the past 6 months (the higher the more often)
-ID13* other drug injected
-ID14_4* kind of places/locations typically injected drugs in, slot 1
-ID14_5* kind of places/locations typically injected drugs in, slot 2
-ID14_6* kind of places/locations typically injected drugs in, slot 3
-ID14_7* kind of places/locations typically injected drugs in, slot 4
+ID13*^ other drug injected (text)
+ID14*^ kind of places/locations typically injected drugs in (text)
 ID15* how often used a new, sterile needle during injection in the past 6 months (the higher the more often)
 ID16* how often used needles that someone else had already injected with during injection in the past 6 months (the higher the more often)
 ID17* whether injected with someone i.e., shared drugs and/or equipment during injection in the past 6 months (no/yes)
@@ -67,11 +59,8 @@ ND9 how often used benzodiazepines in the past 6 months (the higher the more oft
 ND10 how often used opiates/opioids in the past 6 months (the higher the more often)
 ND11 how often used heroin (non-injection) in the past 6 months (the higher the more often)
 ND12 how often used something else not already listed in the past 6 months (the higher the more often)
-ND13* other non-injection substance used
-ND15_4 kind of places/locations typically used non-injection drugs in, slot 1
-ND15_5 kind of places/locations typically used non-injection drugs in, slot 2
-ND15_6 kind of places/locations typically used non-injection drugs in, slot 3
-ND15_7 kind of places/locations typically used non-injection drugs in, slot 4
+ND13*^ other non-injection substance used (text)
+ND15^ kind of places/locations typically used non-injection drugs in (text)
 DA1_1 how easy/hard to get marijuana (hard->easy, or don't know)
 DA1_2 how easy/hard to get methamphetamine (hard->easy, or don't know)
 DA1_3 how easy/hard to get cocaine (hard->easy, or don't know)
@@ -86,26 +75,64 @@ DA2_4 whether they think there is more/less of heroin available now than there w
 DA2_5 whether they think there is more/less of opiates/opioids available now than there was a year ago (more->less, or don't know)
 DA2_6 whether they think there is more/less of benzodiazepines available now than there was a year ago (more->less, or don't know)
 DA2_7 whether they think there is more/less of Ecstasy/MDMA available now than there was a year ago (more->less, or don't know)
-DA5 what time of day generally use alcohol on an average weekday (check all that apply)
-DA6 what time of day generally use alcohol on an average weekend (check all that apply)
-DA7 what time of day generally use recreational drugs on an average weekday (check all that apply)
+DA5_R1 whether generally use alcohol during morning (5am-noon) on an average weekday
+DA5_R2 whether generally use alcohol during afternoon (noon-5pm) on an average weekday
+DA5_R3 whether generally use alcohol during evening (5pm-midnight) on an average weekday
+DA5_R4 whether generally use alcohol during night (midnight-5am) on an average weekday
+DA5_R5 whether don't drink during the week
+DA6_R1 whether generally use alcohol during morning (5am-noon) on an average weekend
+DA6_R2 whether generally use alcohol during afternoon (noon-5pm) on an average weekend
+DA6_R3 whether generally use alcohol during evening (5pm-midnight) on an average weekend
+DA6_R4 whether generally use alcohol during night (midnight-5am) on an average weekend
+DA6_R5 whether don't drink on the weekend
+DA7_R1 whether generally use recreational drugs during morning (5am-noon) on an average weekday
+DA7_R2 whether generally use recreational drugs during afternoon (noon-5pm) on an average weekday
+DA7_R3 whether generally use recreational drugs during evening (5pm-midnight) on an average weekday
+DA7_R4 whether generally use recreational drugs during night (midnight-5am) on an average weekday
+DA7_R5 whether don't use recreational drugs during the week
 DA7a* drug(s) generally use during morning (5am-noon) on an average weekday (check all that apply)
-DA7a_11_TEXT* drug(s) other than listed explicitly in DA7a*
+DA7a_11_TEXT*^ drug(s) other than listed explicitly in DA7a*
 DA7b* drug(s) generally use during afternoon (noon-5pm) on an average weekday (check all that apply)
-DA7b_11_TEXT* drug(s) other than listed explicitly in DA7b*
+DA7b_11_TEXT*^ drug(s) other than listed explicitly in DA7b*
 DA7c* drug(s) generally use during evening (5pm-midnight) on an average weekday (check all that apply)
-DA7c_13_TEXT* drug(s) other than listed explicitly in DA7c*
+DA7c_13_TEXT*^ drug(s) other than listed explicitly in DA7c*
 DA7d* drug(s) generally use during night (midnight-5am) on an average weekday (check all that apply)
-DA7d_11_TEXT* drug(s) other than listed explicitly in DA7d*
-DA8 what time of day generally use recreational drugs on an average weekend (check all that apply)
+DA7d_11_TEXT*^ drug(s) other than listed explicitly in DA7d*
+DA7'_R1 whether generally use marijuana on an average weekday
+DA7'_R2 whether generally use Cocaine on an average weekday
+DA7'_R3 whether generally use Ecstasy/MDMA on an average weekday
+DA7'_R4 whether generally use PCP on an average weekday
+DA7'_R5 whether generally use Amphetamines on an average weekday
+DA7'_R6 whether generally use Methamphetamine on an average weekday
+DA7'_R7 whether generally use Barbiturates on an average weekday
+DA7'_R8 whether generally use Benzodiazepines on an average weekday
+DA7'_R9 whether generally use Opiates/Opioids on an average weekday
+DA7'_R10 whether generally use Heroin on an average weekday
+DA7'_R11 whether generally use some other drug on an average weekday
+DA8_R1 whether generally use recreational drugs during morning (5am-noon) on an average weekend
+DA8_R2 whether generally use recreational drugs during afternoon (noon-5pm) on an average weekend
+DA8_R3 whether generally use recreational drugs during evening (5pm-midnight) on an average weekend
+DA8_R4 whether generally use recreational drugs during night (midnight-5am) on an average weekend
+DA8_R5 whether don't use recreational drugs on the weekend
 DA8a* drug(s) generally use during morning (5am-noon) on an average weekend (check all that apply)
-DA8a_13_TEXT* drug(s) other than listed explicitly in DA8a*
+DA8a_13_TEXT*^ drug(s) other than listed explicitly in DA8a*
 DA8b* drug(s) generally use during afternoon (noon-5pm) on an average weekend (check all that apply)
-DA8b_11_TEXT* drug(s) other than listed explicitly in DA8b*
+DA8b_11_TEXT*^ drug(s) other than listed explicitly in DA8b*
 DA8c* drug(s) generally use during evening (5pm-midnight) on an average weekend (check all that apply)
-DA8c_11_TEXT* drug(s) other than listed explicitly in DA8c*
+DA8c_11_TEXT*^ drug(s) other than listed explicitly in DA8c*
 DA8d* drug(s) generally use during night (midnight-5am) on an average weekend (check all that apply)
-DA8d_11_TEXT* drug(s) other than listed explicitly in DA8d*
+DA8d_11_TEXT*^ drug(s) other than listed explicitly in DA8d*
+DA8'_R1 whether generally use marijuana on an average weekend
+DA8'_R2 whether generally use Cocaine on an average weekend
+DA8'_R3 whether generally use Ecstasy/MDMA on an average weekend
+DA8'_R4 whether generally use PCP on an average weekend
+DA8'_R5 whether generally use Amphetamines on an average weekend
+DA8'_R6 whether generally use Methamphetamine on an average weekend
+DA8'_R7 whether generally use Barbiturates on an average weekend
+DA8'_R8 whether generally use Benzodiazepines on an average weekend
+DA8'_R9 whether generally use Opiates/Opioids on an average weekend
+DA8'_R10 whether generally use Heroin on an average weekend
+DA8'_R11 whether generally use some other drug on an average weekend
 OD1 whether suffered a drug overdose before (no/yes)
 OD2* whether suffered a drug overdose in the past 6 months (no/yes)
 OD6 whether know anyone who has suffered a drug overdose (no/yes)
@@ -121,7 +148,6 @@ TX1_4 whether been to methadone/suboxone treatment program before (no/yes)
 TX1_5 whether been to 12-step alcohol treatment program before (no/yes)
 TX1_6 whether been to 12-step drug treatment program before (no/yes)
 TX1_7 whether been to some other treatment program before (no/yes)
-TX1_7_TEXT* treatment program been to other than listed
 TX2_1 whether currently attending/enrolled in outpatient treatment program (no/yes)
 TX2_2 whether currently attending/enrolled in inpatient/residential treatment program (no/yes)
 TX2_3 whether currently attending/enrolled in detox treatment program (no/yes)
@@ -129,12 +155,11 @@ TX2_4 whether currently attending/enrolled in methadone/suboxone treatment progr
 TX2_5 whether currently attending/enrolled in 12-step alcohol treatment program (no/yes)
 TX2_6 whether currently attending/enrolled in 12-step drug treatment program (no/yes)
 TX2_7 whether currently attending/enrolled in some other treatment program (no/yes)
-TX2_7_TEXT* treatment program currently attending/enrolled in other than listed
 AC1A how often a parent or other adult in the household swore at, insulted, put down, or humiliated them prior to 18th birthday (the higher the more often)
 AC1B how often a parent or other adult in the household acted in a way that made them afraid that they might be physically hurt prior to 18th birthday (the higher the more often)
 AC2A how often a parent or other adult in the household pushed, grabbed, slapped, or threw sth at them prior to 18th birthday (the higher the more often)
 AC2B how often a parent or other adult in the household hit them so hard that they had marks or were injured prior to 18th birthday (the higher the more often)
-AC34A whether an adult or person at least 5 years older than them ever touched or fondled them in a sexual way prior to 18th birthday (no/yes)
+AC3A whether an adult or person at least 5 years older than them ever touched or fondled them in a sexual way prior to 18th birthday (no/yes)
 AC3B whether an adult or person at least 5 years older than them ever had them touch that person's body in a sexual way prior to 18th birthday (no/yes)
 AC3C whether an adult or person at least 5 years older than them ever attempted to have oral, anal, or vaginal intercourse with them prior to 18th birthday (no/yes)
 AC3D whether an adult or person at least 5 years older than them ever actually had oral, anal, or vaginal intercourse with them prior to 18th birthday (no/yes)
@@ -166,7 +191,7 @@ DM8 current marital status (married->never married)
 DM9 highest level of education completed (the higher the more educated)
 DM10 current employment status (employed full-time -> unemployed, or other)
 DM12 religion
-DM12_6_TEXT religion other than listed
+DM12_6_TEXT^ religion other than listed
 DM13* movement within the Protestant faith
 DM14 how often attend religious services (the higher the more often)
 DM15 how much religious/spiritual beliefs influence daily life in general (the higher the more)

@@ -40,11 +40,8 @@ Q46* how often injected a heroin and methamphetamine speedball in the past 6 mon
 Q47* how often injected crack cocaine in the past 6 months (the higher the more often)
 Q48* how often injected buprenorphine in the past 6 months (the higher the more often)
 Q49* how often injected sth else in the past 6 months (the higher the more often)
-Q50* other drug injected
-Q51_R1* kind of places/locations typically injected drugs in, slot 1
-Q51_R2* kind of places/locations typically injected drugs in, slot 2
-Q51_R3* kind of places/locations typically injected drugs in, slot 3
-Q51_R4* kind of places/locations typically injected drugs in, slot 4
+Q50*^ other drug injected (text)
+Q51*^ kind of places/locations typically injected drugs in (text)
 Q52* how often used a new, sterile needle during injection in the past 6 months (the higher the more often)
 Q53* how often used needles that someone else had already injected with during injection in the past 6 months (the higher the more often)
 Q54* whether injected with someone i.e., shared drugs and/or equipment during injection in the past 6 months (no/yes)
@@ -64,11 +61,8 @@ Q77 how often used benzodiazepines in the past 6 months (the higher the more oft
 Q78 how often used opiates/opioids in the past 6 months (the higher the more often)
 Q79 how often used heroin (non-injection) in the past 6 months (the higher the more often)
 Q80 how often used something else not already listed in the past 6 months (the higher the more often)
-Q81* other non-injection substance used
-Q84_R1 kind of places/locations typically used non-injection drugs in, slot 1
-Q84_R2 kind of places/locations typically used non-injection drugs in, slot 2
-Q84_R3 kind of places/locations typically used non-injection drugs in, slot 3
-Q84_R4 kind of places/locations typically used non-injection drugs in, slot 4
+Q81*^ other non-injection substance used (text)
+Q84^ kind of places/locations typically used non-injection drugs in (text)
 Q86 whether they think there is more/less of marijuana available now than there was a year ago (more->less, or don't know)
 Q87 whether they think there is more/less of methamphetamine available now than there was a year ago (more->less, or don't know)
 Q88 whether they think there is more/less of cocaine available now than there was a year ago (more->less, or don't know)
@@ -141,7 +135,6 @@ Q119_R4 whether been to methadone/suboxone treatment program before (no/yes)
 Q119_R5 whether been to 12-step alcohol treatment program before (no/yes)
 Q119_R6 whether been to 12-step drug treatment program before (no/yes)
 Q119_R7 whether been to some other treatment program before (no/yes)
-Q119_R7_Other treatment program been to other than listed
 Q120_R1 whether currently attending/enrolled in outpatient treatment program (no/yes)
 Q120_R2 whether currently attending/enrolled in inpatient/residential treatment program (no/yes)
 Q120_R3 whether currently attending/enrolled in detox treatment program (no/yes)
@@ -149,7 +142,6 @@ Q120_R4 whether currently attending/enrolled in methadone/suboxone treatment pro
 Q120_R5 whether currently attending/enrolled in 12-step alcohol treatment program (no/yes)
 Q120_R6 whether currently attending/enrolled in 12-step drug treatment program (no/yes)
 Q120_R7 whether currently attending/enrolled in some other treatment program (no/yes)
-Q120_R7_Other treatment program currently attending/enrolled in other than listed
 Q196 how concerned they are about the police when using drugs (the higher the more concerned)
 Q197 how concerned they are about the police when buying or selling drugs (the higher the more concerned)
 Q198 whether been incarcerated before (no/yes)
