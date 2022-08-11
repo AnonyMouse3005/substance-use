@@ -1,85 +1,85 @@
-NS1
-NSX2A
-NSX3A
-NSX5A
-NSX7A
-NSX8A
-NSX9A
-NSX10A
-NSX11A
-NSX12A
-NSX2B
-NSX3B
-NSX5B
-NSX7B
-NSX8B
-NSX9B
-NSX10B
-NSX11B
-NSX12B
-NSX2C
-NSX3C
-NSX5C
-NSX7C
-NSX8C
-NSX9C
-NSX10C
-NSX11C
-NSX12C
-NSX2D
-NSX3D
-NSX5D
-NSX7D
-NSX8D
-NSX9D
-NSX10D
-NSX11D
-NSX12D
-NSX2E
-NSX3E
-NSX5E
-NSX7E
-NSX8E
-NSX9E
-NSX10E
-NSX11E
-NSX12E
-NSX2F
-NSX3F
-NSX5F
-NSX7F
-NSX8F
-NSX9F
-NSX10F
-NSX11F
-NSX12F
-NSX2G
-NSX3G
-NSX5G
-NSX7G
-NSX8G
-NSX9G
-NSX10G
-NSX11G
-NSX12G
-NSX2H
-NSX3H
-NSX5H
-NSX7H
-NSX8H
-NSX9H
-NSX10H
-NSX11H
-NSX12H
-NSX2I
-NSX3I
-NSX5I
-NSX7I
-NSX8I
-NSX9I
-NSX10I
-NSX11I
-NSX12I
+NS1 how many people they think they can confide in
+NSX2A how long person A has been someone that you could confide in (the higher the longer)
+NSX3A how often they hang out or spend time with person A (the higher the more often)
+NSX5A age of person A
+NSX7A level of education person A has finished to the best of their knowledge (the higher the more educated)
+NSX8A current employment status of person A to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NSX9A whether person A is a person they are comfortable using drugs around
+NSX10A how often they have used drugs with person A in the past 30 days (the higher the more often)
+NSX11A how often (they think) person A uses drugs in general (the higher the more often)
+NSX12A relationship with person A (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NSX2B how long person B has been someone that you could confide in (the higher the longer)
+NSX3B how often they hang out or spend time with person B (the higher the more often)
+NSX5B age of person B
+NSX7B level of education person B has finished to the best of their knowledge (the higher the more educated)
+NSX8B current employment status of person B to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NSX9B whether person B is a person they are comfortable using drugs around
+NSX10B how often they have used drugs with person B in the past 30 days (the higher the more often)
+NSX11B how often (they think) person B uses drugs in general (the higher the more often)
+NSX12B relationship with person B (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NSX2C how long person C has been someone that you could confide in (the higher the longer)
+NSX3C how often they hang out or spend time with person C (the higher the more often)
+NSX5C age of person C
+NSX7C level of education person C has finished to the best of their knowledge (the higher the more educated)
+NSX8C current employment status of person C to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NSX9C whether person C is a person they are comfortable using drugs around
+NSX10C how often they have used drugs with person C in the past 30 days (the higher the more often)
+NSX11C how often (they think) person C uses drugs in general (the higher the more often)
+NSX12C relationship with person C (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NSX2D how long person D has been someone that you could confide in (the higher the longer)
+NSX3D how often they hang out or spend time with person D (the higher the more often)
+NSX5D age of person D
+NSX7D level of education person D has finished to the best of their knowledge (the higher the more educated)
+NSX8D current employment status of person D to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NSX9D whether person D is a person they are comfortable using drugs around
+NSX10D how often they have used drugs with person D in the past 30 days (the higher the more often)
+NSX11D how often (they think) person D uses drugs in general (the higher the more often)
+NSX12D relationship with person D (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NSX2E how long person E has been someone that you could confide in (the higher the longer)
+NSX3E how often they hang out or spend time with person E (the higher the more often)
+NSX5E age of person E
+NSX7E level of education person E has finished to the best of their knowledge (the higher the more educated)
+NSX8E current employment status of person E to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NSX9E whether person E is a person they are comfortable using drugs around
+NSX10E how often they have used drugs with person E in the past 30 days (the higher the more often)
+NSX11E how often (they think) person E uses drugs in general (the higher the more often)
+NSX12E relationship with person E (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NSX2F how long person F has been someone that you could confide in (the higher the longer)
+NSX3F how often they hang out or spend time with person F (the higher the more often)
+NSX5F age of person F
+NSX7F level of education person F has finished to the best of their knowledge (the higher the more educated)
+NSX8F current employment status of person F to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NSX9F whether person F is a person they are comfortable using drugs around
+NSX10F how often they have used drugs with person F in the past 30 days (the higher the more often)
+NSX11F how often (they think) person F uses drugs in general (the higher the more often)
+NSX12F relationship with person F (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NSX2G how long person G has been someone that you could confide in (the higher the longer)
+NSX3G how often they hang out or spend time with person G (the higher the more often)
+NSX5G age of person G
+NSX7G level of education person G has finished to the best of their knowledge (the higher the more educated)
+NSX8G current employment status of person G to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NSX9G whether person G is a person they are comfortable using drugs around
+NSX10G how often they have used drugs with person G in the past 30 days (the higher the more often)
+NSX11G how often (they think) person G uses drugs in general (the higher the more often)
+NSX12G relationship with person G (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NSX2H how long person H has been someone that you could confide in (the higher the longer)
+NSX3H how often they hang out or spend time with person H (the higher the more often)
+NSX5H age of person H
+NSX7H level of education person H has finished to the best of their knowledge (the higher the more educated)
+NSX8H current employment status of person H to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NSX9H whether person H is a person they are comfortable using drugs around
+NSX10H how often they have used drugs with person H in the past 30 days (the higher the more often)
+NSX11H how often (they think) person H uses drugs in general (the higher the more often)
+NSX12H relationship with person H (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NSX2I how long person I has been someone that you could confide in (the higher the longer)
+NSX3I how often they hang out or spend time with person I (the higher the more often)
+NSX5I age of person I
+NSX7I level of education person I has finished to the best of their knowledge (the higher the more educated)
+NSX8I current employment status of person I to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NSX9I whether person I is a person they are comfortable using drugs around
+NSX10I how often they have used drugs with person I in the past 30 days (the higher the more often)
+NSX11I how often (they think) person I uses drugs in general (the higher the more often)
+NSX12I relationship with person I (spouse/romantic partner, parent, child, other relative, friend, or sth else)
 NSX131_1
 NSX131_2
 NSX131_3
@@ -96,87 +96,87 @@ NSX134_1
 NSX134_2
 NSX134_3
 NSX134_4
-ND1
-NDX2J
-NDX4J
-NDX5J
-NDX5J_6_TEXT
-NDX6J
-NDX6J_8_TEXT
-NDX8J
-NDX9J
-NDX12J
-NDX2K
-NDX4K
-NDX5K
-NDX6K
-NDX6K_14_TEXT
-NDX8K
-NDX9K
-NDX12K
-NDX2L
-NDX4L
-NDX5L
-NDX5L_10_TEXT
-NDX6L
-NDX6L_13_TEXT
-NDX8L
-NDX9L
-NDX12L
-NDX2M
-NDX4M
-NDX5M
-NDX5M_10_TEXT
-NDX6M
-NDX6M_13_TEXT
-NDX8M
-NDX9M
-NDX12M
-NDX2N
-NDX4N
-NDX5N
-NDX5N_10_TEXT
-NDX6N
-NDX6N_13_TEXT
-NDX8N
-NDX9N
-NDX12N
-NDX2O
-NDX4O
-NDX5O
-NDX5O_11_TEXT
-NDX6O
-NDX6O_14_TEXT
-NDX8O
-NDX9O
-NDX12O
-NDX2P
-NDX4P
-NDX5P
-NDX5P_10_TEXT
-NDX6P
-NDX6P_13_TEXT
-NDX8P
-NDX9P
-NDX12P
-NDX2Q
-NDX4Q
-NDX5Q
-NDX5Q_10_TEXT
-NDX6Q
-NDX6Q_13_TEXT
-NDX8Q
-NDX9Q
-NDX12Q
-NDX2R
-NDX4R
-NDX5R
-NDX5R_10_TEXT
-NDX6R
-NDX6R_13_TEXT
-NDX8R
-NDX9R
-NDX12R
+ND1 how many people they have used drugs with in the past 30 days
+NDX2J age of person J
+NDX4J level of education person J has finished to the best of their knowledge (the higher the more educated)
+NDX5J current employment status of person J to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NDX5J_6_TEXT other current employment status of person J not listed
+NDX6J relationship with person J (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NDX6J_8_TEXT other relationship with person J not listed
+NDX8J how often they used drugs with person J in the past 30 days (the higher the more often)
+NDX9J how often (they think) person J uses drugs in general (the higher the more often)
+NDX12J how long they have used drugs with person J (the higher the longer)
+NDX2K age of person K
+NDX4K level of education person K has finished to the best of their knowledge (the higher the more educated)
+NDX5K current employment status of person K to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NDX6K relationship with person K (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NDX6K_14_TEXT other relationship with person K not listed
+NDX8K how often they used drugs with person K in the past 30 days (the higher the more often)
+NDX9K how often (they think) person K uses drugs in general (the higher the more often)
+NDX12K how long they have used drugs with person K (the higher the longer)
+NDX2L age of person L
+NDX4L level of education person L has finished to the best of their knowledge (the higher the more educated)
+NDX5L current employment status of person L to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NDX5L_10_TEXT other current employment status of person L not listed
+NDX6L relationship with person L (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NDX6L_13_TEXT other relationship with person L not listed
+NDX8L how often they used drugs with person L in the past 30 days (the higher the more often)
+NDX9L how often (they think) person L uses drugs in general (the higher the more often)
+NDX12L how long they have used drugs with person L (the higher the longer)
+NDX2M age of person M
+NDX4M level of education person M has finished to the best of their knowledge (the higher the more educated)
+NDX5M current employment status of person M to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NDX5M_10_TEXT other current employment status of person M not listed
+NDX6M relationship with person M (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NDX6M_13_TEXT other relationship with person M not listed
+NDX8M how often they used drugs with person M in the past 30 days (the higher the more often)
+NDX9M how often (they think) person M uses drugs in general (the higher the more often)
+NDX12M how long they have used drugs with person M (the higher the longer)
+NDX2N age of person N
+NDX4N level of education person N has finished to the best of their knowledge (the higher the more educated)
+NDX5N current employment status of person N to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NDX5N_10_TEXT other current employment status of person N not listed
+NDX6N relationship with person N (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NDX6N_13_TEXT other relationship with person N not listed
+NDX8N how often they used drugs with person N in the past 30 days (the higher the more often)
+NDX9N how often (they think) person N uses drugs in general (the higher the more often)
+NDX12N how long they have used drugs with person N (the higher the longer)
+NDX2O age of person O
+NDX4O level of education person O has finished to the best of their knowledge (the higher the more educated)
+NDX5O current employment status of person O to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NDX5O_11_TEXT other current employment status of person O not listed
+NDX6O relationship with person O (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NDX6O_14_TEXT other relationship with person O not listed
+NDX8O how often they used drugs with person O in the past 30 days (the higher the more often)
+NDX9O how often (they think) person O uses drugs in general (the higher the more often)
+NDX12O how long they have used drugs with person O (the higher the longer)
+NDX2P age of person P
+NDX4P level of education person P has finished to the best of their knowledge (the higher the more educated)
+NDX5P current employment status of person P to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NDX5P_10_TEXT other current employment status of person P not listed
+NDX6P relationship with person P (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NDX6P_13_TEXT other relationship with person P not listed
+NDX8P how often they used drugs with person P in the past 30 days (the higher the more often)
+NDX9P how often (they think) person P uses drugs in general (the higher the more often)
+NDX12P how long they have used drugs with person P (the higher the longer)
+NDX2Q age of person Q
+NDX4Q level of education person Q has finished to the best of their knowledge (the higher the more educated)
+NDX5Q current employment status of person Q to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NDX5Q_10_TEXT other current employment status of person Q not listed
+NDX6Q relationship with person Q (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NDX6Q_13_TEXT other relationship with person Q not listed
+NDX8Q how often they used drugs with person Q in the past 30 days (the higher the more often)
+NDX9Q how often (they think) person Q uses drugs in general (the higher the more often)
+NDX12Q how long they have used drugs with person Q (the higher the longer)
+NDX2R age of person R
+NDX4R level of education person R has finished to the best of their knowledge (the higher the more educated)
+NDX5R current employment status of person R to the best of their knowledge (full-time, part-time, unemployed, other, or don't know)
+NDX5R_10_TEXT other current employment status of person R not listed
+NDX6R relationship with person R (spouse/romantic partner, parent, child, other relative, friend, or sth else)
+NDX6R_13_TEXT other relationship with person R not listed
+NDX8R how often they used drugs with person R in the past 30 days (the higher the more often)
+NDX9R how often (they think) person R uses drugs in general (the higher the more often)
+NDX12R how long they have used drugs with person R (the higher the longer)
 NDX151_1
 NDX151_2
 NDX151_3
