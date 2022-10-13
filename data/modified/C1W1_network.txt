@@ -80,22 +80,22 @@ NSX9I whether person I is a person they are comfortable using drugs around
 NSX10I how often they have used drugs with person I in the past 30 days (the higher the more often)
 NSX11I how often (they think) person I uses drugs in general (the higher the more often)
 NSX12I relationship with person I (spouse/romantic partner, parent, child, other relative, friend, or sth else)
-NSX131_1
-NSX131_2
-NSX131_3
-NSX131_4
-NSX132_1
-NSX132_2
-NSX132_3
-NSX132_4
-NSX133_1
-NSX133_2
-NSX133_3
-NSX133_4
-NSX134_1
-NSX134_2
-NSX134_3
-NSX134_4
+NSX131_1 whether they think person A and person B know each other (no, yes, or same person)
+NSX131_2 whether they think person B and person B know each other (no, yes, or same person) 
+NSX131_3 whether they think person C and person B know each other (no, yes, or same person)
+NSX131_4 whether they think person D and person B know each other (no, yes, or same person)
+NSX132_1 whether they think person A and person C know each other (no, yes, or same person)
+NSX132_2 whether they think person B and person C know each other (no, yes, or same person)
+NSX132_3 whether they think person C and person C know each other (no, yes, or same person)
+NSX132_4 whether they think person D and person C know each other (no, yes, or same person)
+NSX133_1 whether they think person A and person D know each other (no, yes, or same person)
+NSX133_2 whether they think person B and person D know each other (no, yes, or same person)
+NSX133_3 whether they think person C and person D know each other (no, yes, or same person)
+NSX133_4 whether they think person D and person D know each other (no, yes, or same person)
+NSX134_1 whether they think person A and person E know each other (no, yes, or same person)
+NSX134_2 whether they think person B and person E know each other (no, yes, or same person)
+NSX134_3 whether they think person C and person E know each other (no, yes, or same person)
+NSX134_4 whether they think person D and person E know each other (no, yes, or same person)
 ND1 how many people they have used drugs with in the past 30 days
 NDX2J age of person J
 NDX4J level of education person J has finished to the best of their knowledge (the higher the more educated)
@@ -177,19 +177,19 @@ NDX6R_13_TEXT other relationship with person R not listed
 NDX8R how often they used drugs with person R in the past 30 days (the higher the more often)
 NDX9R how often (they think) person R uses drugs in general (the higher the more often)
 NDX12R how long they have used drugs with person R (the higher the longer)
-NDX151_1
-NDX151_2
-NDX151_3
-NDX151_4
-NDX152_1
-NDX152_2
-NDX152_3
-NDX152_4
-NDX153_1
-NDX153_2
-NDX153_3
-NDX153_4
-NDX154_1
-NDX154_2
-NDX154_3
-NDX154_4
+NDX151_1 whether they think person J and person K use drugs together (no, yes, or same person)
+NDX151_2 whether they think person K and person K use drugs together (no, yes, or same person)
+NDX151_3 whether they think person L and person K use drugs together (no, yes, or same person)
+NDX151_4 whether they think person M and person K use drugs together (no, yes, or same person)
+NDX152_1 whether they think person J and person L use drugs together (no, yes, or same person)
+NDX152_2 whether they think person K and person L use drugs together (no, yes, or same person)
+NDX152_3 whether they think person L and person L use drugs together (no, yes, or same person)
+NDX152_4 whether they think person M and person L use drugs together (no, yes, or same person)
+NDX153_1 whether they think person J and person M use drugs together (no, yes, or same person)
+NDX153_2 whether they think person K and person M use drugs together (no, yes, or same person)
+NDX153_3 whether they think person L and person M use drugs together (no, yes, or same person)
+NDX153_4 whether they think person M and person M use drugs together (no, yes, or same person)
+NDX154_1 whether they think person J and person N use drugs together (no, yes, or same person)
+NDX154_2 whether they think person K and person N use drugs together (no, yes, or same person)
+NDX154_3 whether they think person L and person N use drugs together (no, yes, or same person)
+NDX154_4 whether they think person M and person N use drugs together (no, yes, or same person)
