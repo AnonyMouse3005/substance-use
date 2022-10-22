@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.model_selection import LeaveOneOut
 from sklearn.preprocessing import StandardScaler
 import json
+import scipy.stats as ss
 
 
 def powerset(iterable):
@@ -31,3 +32,19 @@ def standard_scale(X):
 def json_dump(filepath, var):
     with open(filepath, 'w') as f:
         json.dump(var, f)
+
+
+def cramers_V(confusion_matrix):
+    """ calculate Cramers V statistic for categorial-categorial association.
+        uses correction from Bergsma and Wicher, 
+        Journal of the Korean Statistical Society 42 (2013): 323-328
+    """
+    chi2 = ss.chi2_contingency(confusion_matrix)[0]
+    n = confusion_matrix.sum()
+    phi2 = chi2/n
+    r,k = confusion_matrix.shape
+    phi2corr = max(0, phi2 - ((k-1)*(r-1))/(n-1))    
+    rcorr = r - ((r-1)**2)/(n-1)
+    kcorr = k - ((k-1)**2)/(n-1)
+    err_flag = True if min( (kcorr-1), (rcorr-1)) == 0 else False  # Debug: division of zero flag
+    return np.sqrt(phi2corr / min( (kcorr-1), (rcorr-1))), err_flag
