@@ -1,7 +1,7 @@
 from itertools import chain, combinations
 import numpy as np
 from sklearn.model_selection import LeaveOneOut
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, Normalizer
 import json
 import scipy.stats as ss
 
@@ -27,6 +27,10 @@ def loocv(X, y, model):
 
 def standard_scale(X):
     scaler = StandardScaler().fit(X)
+    return scaler.transform(X)
+
+def norm_scale(X):
+    scaler = Normalizer().fit(X)
     return scaler.transform(X)
 
 def json_dump(filepath, var):
