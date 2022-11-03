@@ -36,6 +36,12 @@ from tqdm import tqdm
 from helper import *
 
 
+# %% boilerplate
+if len(sys.argv) != 3:
+    print('Usage: python3 inference.py [plot&save figs?] [save df?]')
+    sys.exit(1)
+
+
 # %%
 def load_data(cohort, drug):
 
@@ -141,6 +147,7 @@ if __name__ == '__main__':
                 'DT': DecisionTreeClassifier(),
                 'SVM': SVC()
                 }
+    best_dict = {}
 
     for drug in ['marijuana', 'meth']:
         for clf_name, clf in clf_dict.items():
@@ -148,6 +155,7 @@ if __name__ == '__main__':
             cohorts = ['C1', 'C2', 'C1+C2']
             x, y = np.meshgrid(cohorts, cohorts)
             intensity = np.zeros((len(cohorts),len(cohorts)))
+            labels = []
 
             for ii, cohort in enumerate([1, 2, '1+2']):  # cohort trained on
                 best_results = {}
@@ -166,25 +174,35 @@ if __name__ == '__main__':
 
                 best_score_all = max(val['best_score'] for val in best_results.values())
                 best_methods_all = {f'{key}_{skey}': sval for key, val in best_results.items() if val['best_score'] == best_score_all for skey, sval in val['best_method(s)'].items()}
-                
+                best_dict[f'C{cohort}-{drug}-{clf_name}_best'] = [method for method in best_methods_all.keys()]
+                # best_dict[f'C{cohort}-{drug}-{clf_name}-features'] = [features for features in best_methods_all.values()]
+
                 # train best model from cohort x and validate it on cohort 1, 2, 1+2
-                X, y, X_df, baseline = load_data(cohort, drug)
+                X, y, X_df, _ = load_data(cohort, drug)
                 for jj, cohort_test in enumerate([1, 2, '1+2']):  # cohort tested on
                     
-                    X_test, y_test, Xtest_df, _ = load_data(cohort_test, drug)
+                    X_test, y_test, Xtest_df, baseline = load_data(cohort_test, drug)
                     test_scores = []
                     for method, features in best_methods_all.items():  # dealing with tied highest accuracy during feature selection -> pick one that yields highest test score
                         # CAVEAT: due to one-hot encoding of nominal variables, C1 and C2 might have different total numbers of features
                         X_train = X[:, [X_df.columns.get_loc(f) for f in features if f in Xtest_df.columns]]
                         X_test_trim = X_test[:, [Xtest_df.columns.get_loc(f) for f in features if f in Xtest_df.columns]]
-                        model = clf.fit(X_train, y)
-                        predictions = model.predict(X_test_trim)
+                        model = clf.fit(X_train, y) if clf_name == 'DT' else clf.fit(standard_scale(X_train), y)
+                        predictions = model.predict(X_test_trim) if clf_name == 'DT' else model.predict(standard_scale(X_test_trim))
                         test_scores.append(np.mean(predictions==y_test))
 
+                    if len(test_scores) > 1:
+                        best_dict[f'C{cohort}-{drug}-{clf_name}_best'][np.argmax(test_scores)] = best_dict[f'C{cohort}-{drug}-{clf_name}_best'][np.argmax(test_scores)] + '*'
                     intensity[ii, jj] = max(test_scores)
+                    labels.append(f'{round(max(test_scores), 2)}/{round(baseline, 2)}')
 
+            if sys.argv[1]:
+                annot = np.array(labels).reshape((len(cohorts),len(cohorts)))
+                s = sns.heatmap(intensity, annot=annot, fmt='', cmap='Blues', xticklabels=cohorts, yticklabels=cohorts)
+                s.set(xlabel='Test', ylabel='Train', title=f'{clf_name} classifier on {drug} use (test ACC/baseline ACC)')
+                plt.savefig(f'plots/analysis/inferences/{drug}-{clf_name}.pdf')
+                plt.close()
 
-            s = sns.heatmap(intensity, annot=True, cmap='Blues', xticklabels=cohorts, yticklabels=cohorts)
-            s.set(xlabel='Test', ylabel='Train', title=f'{clf_name} classifier on {drug} use (baseline = {round(baseline, 3)})')
-            plt.savefig(f'plots/analysis/inferences/{drug}-{clf_name}.pdf')
-            plt.close()
+    best_df = pd.DataFrame(dict([ (k,pd.Series(v)) for k,v in best_dict.items() ]))
+    if sys.argv[2]:
+        best_df.reindex(sorted(best_df.columns), axis=1).to_csv('results/best_performing_methods.csv', index=False)

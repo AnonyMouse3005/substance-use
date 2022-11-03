@@ -1,37 +1,37 @@
 # %%
+import json
+import multiprocessing
+import pickle
+import re
+import sys
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import re
-import json
-from joblib import Parallel, delayed
-import multiprocessing
-from tqdm import tqdm
-import pickle
-from scipy import stats
-from helper import *
-import sys
-
-from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import *
-from sklearn.feature_selection import SelectFromModel, SelectPercentile, mutual_info_classif, chi2
-from sklearn.impute import SimpleImputer
-from sklearn.metrics import RocCurveDisplay
-from sklearn.datasets import make_multilabel_classification
-from sklearn.multioutput import MultiOutputClassifier
-from sklearn.decomposition import PCA
-from sklearn.tree import DecisionTreeClassifier, plot_tree, export_text
-from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
-from sklearn.svm import SVC, LinearSVC
-from sklearn.pipeline import Pipeline
-from sklearn.inspection import permutation_importance
-
-from sklearn.utils._testing import ignore_warnings
-from sklearn.exceptions import ConvergenceWarning
-from mlxtend.feature_selection import ExhaustiveFeatureSelector
 from genetic_selection import GeneticSelectionCV
+from joblib import Parallel, delayed
+from mlxtend.feature_selection import ExhaustiveFeatureSelector
+from scipy import stats
+from sklearn.datasets import make_multilabel_classification
+from sklearn.decomposition import PCA
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.feature_selection import (SelectFromModel, SelectPercentile, chi2,
+                                       mutual_info_classif)
+from sklearn.impute import SimpleImputer
+from sklearn.inspection import permutation_importance
+from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
+from sklearn.metrics import RocCurveDisplay
+from sklearn.model_selection import *
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
+from sklearn.svm import SVC, LinearSVC
+from sklearn.tree import DecisionTreeClassifier, export_text, plot_tree
+from sklearn.utils._testing import ignore_warnings
+from tqdm import tqdm
 
+from helper import *
 
 # %% boilerplate
 if len(sys.argv) != 4:
