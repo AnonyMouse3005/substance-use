@@ -1,9 +1,11 @@
 from itertools import chain, combinations
 import numpy as np
-from sklearn.model_selection import LeaveOneOut
+from sklearn.model_selection import LeaveOneOut, learning_curve
 from sklearn.preprocessing import StandardScaler, Normalizer
 import json
 import scipy.stats as ss
+import matplotlib.pyplot as plt
+import pandas as pd
 
 
 def powerset(iterable):
@@ -52,3 +54,294 @@ def cramers_V(confusion_matrix):
     kcorr = k - ((k-1)**2)/(n-1)
     err_flag = True if min( (kcorr-1), (rcorr-1)) == 0 else False  # Debug: division of zero flag
     return np.sqrt(phi2corr / min( (kcorr-1), (rcorr-1))), err_flag
+
+
+'''
+See imputing notes from data_nonet_analysis.ipynb
+'''
+def impute_MARs(vars, df):
+
+    for v in vars:
+        col = df[v]
+        if v == 'TB2':
+            for idx, i in enumerate(col):
+                if i == 5:
+                    df.at[idx, 'TB2_4_TEXT'] = -1
+                    df.at[idx, 'TB3'] = 1
+                    df.at[idx, 'TB4'] = 0
+        if v == 'TB3':
+            for idx, i in enumerate(col):
+                if i == 1:
+                    df.at[idx, 'TB4'] = 0
+        if v == 'TB5':
+            for idx, i in enumerate(col):
+                if i == 1:
+                    df.at[idx, 'TB6'] = -1
+                    df.at[idx, 'TB7'] = 1
+                    df.at[idx, 'TB8'] = 0
+        if v == 'TB7':
+            for idx, i in enumerate(col):
+                if i == 1:
+                    df.at[idx, 'TB8'] = 0
+        if v == 'TB9':
+            for idx, i in enumerate(col):
+                if i == 1:
+                    df.at[idx, 'TB10'] = -1
+                    df.at[idx, 'TB11'] = 1
+                    df.at[idx, 'TB12'] = 0
+        if v == 'TB11':
+            for idx, i in enumerate(col):
+                if i == 1:
+                    df.at[idx, 'TB12'] = 0
+        if v == 'AL1':
+            for idx, i in enumerate(col):
+                if i == 2:
+                    df.at[idx, 'AL1_4_TEXT'] = -1
+                    df.at[idx, 'AL2_1_TEXT'] = -1
+                    df.at[idx, 'AL3_1_TEXT'] = -1
+                    df.at[idx, 'AL4'] = 1
+                    df.at[idx, 'AL5'] = 0
+                    df.at[idx, 'AL6A'] = 0
+                    df.at[idx, 'AL6B'] = 0
+                elif i == 3:
+                    df.at[idx, 'AL1_4_TEXT'] = -2
+        if v == 'AL2':
+            for idx, i in enumerate(col):
+                if i == 2:
+                    df.at[idx, 'AL2_1_TEXT'] = -2
+        if v == 'AL3':
+            for idx, i in enumerate(col):
+                if i == 2:
+                    df.at[idx, 'AL3_1_TEXT'] = -2
+        if v == 'AL5':
+            for idx, i in enumerate(col):
+                if i == 1:
+                    df.at[idx, 'AL6A'] = 0
+                    df.at[idx, 'AL6B'] = 0
+        if v == 'AL6A':
+            for idx, i in enumerate(col):
+                if pd.isnull(df.loc[idx, v]) and not pd.isnull(df.loc[idx, 'AL6B']):
+                    df.at[idx, v] = df.at[idx, 'AL6B']
+        if v == 'ID1':
+            for idx, i in enumerate(col):
+                if i == 1:
+                    df.at[idx, 'ID2'] = -1
+                    for j in range(3,13):
+                        df.at[idx, f'ID{j}'] = 0
+                    for j in range(15,21):
+                        df.at[idx, f'ID{j}'] = -1
+        if v == 'ID3':
+            for idx, i in enumerate(col):
+                if i == 1:
+                    for j in range(4,13):
+                        df.at[idx, f'ID{j}'] = 0
+                    for j in range(15,21):
+                        df.at[idx, f'ID{j}'] = -1
+        if v == 'ID17':
+            for idx, i in enumerate(col):
+                if i == 1:
+                    for j in range(18,21):
+                        df.at[idx, f'ID{j}'] = -1
+        if v == 'ND1':
+            for idx, i in enumerate(col):
+                if i == 1:
+                    df.at[idx, 'ND2'] = -1
+        if v == 'OD1':
+            for idx, i in enumerate(col):
+                if i == 1:
+                    df.at[idx, 'OD2'] = 0
+        if v == 'OD6':
+            for idx, i in enumerate(col):
+                if i == 2:
+                    for j in range(7,12):
+                        df.at[idx, f'OD{j}'] = 0
+        if v == 'OD8':
+            for idx, i in enumerate(col):
+                if i == 1:
+                    df.at[idx, 'OD9'] = 0
+        if v == 'OD10':
+            for idx, i in enumerate(col):
+                if i == 1:
+                    df.at[idx, 'OD11'] = 0
+        if v == 'CJ3':
+            for idx, i in enumerate(col):
+                if i == 1:
+                    for j in range(4,8):
+                        df.at[idx, f'CJ{j}'] = -1
+        if v == 'DM12':
+            for idx, i in enumerate(col):
+                if i != 1:
+                    df.at[idx, 'DM13'] = -1
+
+    vars_mixed = ['DM1','TB2_4_TEXT','TB6','TB10','AL1_4_TEXT','AL2_1_TEXT','AL3_1_TEXT','ID2','ND2']
+    for v in vars_mixed:
+        col = df[v]
+        if v[-4:] == 'TEXT':  # e.g., modify TB2 column instead of TB2_4_TEXT
+            v = v.split('_')[0]
+        for idx, i in enumerate(col):
+            if 0 <= i <= 14:    df.at[idx, v] = 0  # children
+            elif 15 <= i <= 24: df.at[idx, v] = 1  # youth
+            elif 25 <= i <= 64: df.at[idx, v] = 2  # adult
+            elif i >= 65:       df.at[idx, v] = 3  # senior
+            elif i == -1:       df.at[idx, v] = -1  # never
+            elif i == -2 or (np.isnan(i) and df.at[idx, v] == 4):       df.at[idx, v] = np.nan  # don't know
+
+    v = 'SC1'  # numerical variable (# of years)
+    col = df[v]
+    for idx, i in enumerate(col):
+        if i < 0.5:    df.at[idx, v] = 0  # less than 6 months
+        elif 0.5 <= i < 1:  df.at[idx, v] = 1  # 
+        elif 1 <= i < 2:    df.at[idx, v] = 2  #
+        elif 2 <= i < 5:    df.at[idx, v] = 3  #
+        elif 5 <= i < 10:    df.at[idx, v] = 4  #
+        elif i >= 10:       df.at[idx, v] = 5  # more than 10 years
+
+    return df
+
+
+def plot_learning_curve(  # Originally from sklearn's doc
+    estimator,
+    title,
+    X,
+    y,
+    axes=None,
+    ylim=None,
+    cv=None,
+    n_jobs=None,
+    scoring=None,
+    train_sizes=np.linspace(0.1, 1.0, 10),
+    score=None, baseline=1
+):
+    """
+    Generate ONE plots: the test and training learning curves
+    """
+    if axes is None:
+        _, axes = plt.subplots(1, 1, figsize=(20, 5))
+
+    axes.set_title(title)
+    if ylim is not None:
+        axes.set_ylim(*ylim)
+    axes.set_xlabel("Training examples")
+    axes.set_ylabel("Score")
+
+    train_sizes, train_scores, test_scores, fit_times, _ = learning_curve(
+        estimator,
+        X,
+        y,
+        scoring=scoring,
+        cv=cv,
+        n_jobs=n_jobs,
+        train_sizes=train_sizes,
+        return_times=True,
+    )
+    train_scores_mean = np.mean(train_scores, axis=1)
+    train_scores_std = np.std(train_scores, axis=1)
+    test_scores_mean = np.mean(test_scores, axis=1)
+    test_scores_std = np.std(test_scores, axis=1)
+    fit_times_mean = np.mean(fit_times, axis=1)
+    fit_times_std = np.std(fit_times, axis=1)
+
+    # Plot learning curve
+    axes.grid()
+    axes.fill_between(
+        train_sizes,
+        train_scores_mean - train_scores_std,
+        train_scores_mean + train_scores_std,
+        alpha=0.1,
+        color="r",
+    )
+    axes.fill_between(
+        train_sizes,
+        test_scores_mean - test_scores_std,
+        test_scores_mean + test_scores_std,
+        alpha=0.1,
+        color="g",
+    )
+    axes.plot(
+        train_sizes, train_scores_mean, "o-", color="r", label="Training score"
+    )
+    axes.plot(
+        train_sizes, test_scores_mean, "o-", color="g", label="Cross-validation score"
+    )
+    if score is not None:
+        axes.plot([], [], ' ', label=f"CV acc/baseline acc: {round(score, 3)}/{round(baseline, 3)}")
+
+    axes.legend(loc="lower right")
+
+    return plt
+
+
+#---------------------------------------------------------------------------------------------------------------------
+def plot_learning_curve_v2(
+    estimator,
+    title,
+    X,
+    y,
+    axes=None,
+    ylim=None,
+    cv=None,
+    n_jobs=None,
+    scoring=None,
+    train_sizes=np.linspace(0.1, 1.0, 10),
+    score=None, baseline=1
+):
+    """
+    Generate ONE plot: the test and training learning curves
+    """
+    if axes is None:
+        fig, axes = plt.subplots(1, 1, figsize=(7, 7))
+
+    plt.rc('axes', titlesize=10) 
+    axes.set_title(title)
+    if ylim is not None:
+        axes.set_ylim(*ylim)
+    axes.set_xlabel("Training examples")
+    axes.set_ylabel("Score")
+
+    train_sizes, train_scores, test_scores, fit_times, _ = learning_curve(
+        estimator,
+        X,
+        y,
+        scoring=scoring,
+        cv=cv,
+        n_jobs=n_jobs,
+        train_sizes=train_sizes,
+        return_times=True,
+    )
+    train_scores_mean = np.mean(train_scores, axis=1)
+    train_scores_std = np.std(train_scores, axis=1)
+    test_scores_mean = np.mean(test_scores, axis=1)
+    test_scores_std = np.std(test_scores, axis=1)
+    fit_times_mean = np.mean(fit_times, axis=1)
+    fit_times_std = np.std(fit_times, axis=1)
+
+    # Plot learning curve
+    axes.grid()
+    axes.fill_between(
+        train_sizes,
+        train_scores_mean - train_scores_std,
+        train_scores_mean + train_scores_std,
+        alpha=0.1,
+        color="r",
+    )
+    axes.fill_between(
+        train_sizes,
+        test_scores_mean - test_scores_std,
+        test_scores_mean + test_scores_std,
+        alpha=0.1,
+        color="g",
+    )
+    axes.plot(
+        train_sizes, train_scores_mean, "o-", color="r", label="Training score"
+    )
+    axes.plot(
+        train_sizes, test_scores_mean, "o-", color="g", label="Cross-validation score"
+    )
+    if score is not None:
+        axes.plot([], [], ' ', label=f"CV acc/baseline acc: {round(score, 3)}/{round(baseline, 3)}")
+
+    axes.legend(loc="lower right")
+
+    fig.tight_layout()
+
+    return plt
