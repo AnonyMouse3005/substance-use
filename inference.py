@@ -191,12 +191,13 @@ if __name__ == '__main__':
                         predictions = model.predict(X_test_trim) if clf_name == 'DT' else model.predict(standard_scale(X_test_trim))
                         test_scores.append(np.mean(predictions==y_test))
 
-                    if len(test_scores) > 1:
-                        best_dict[f'C{cohort}-{drug}-{clf_name}_best'][np.argmax(test_scores)] = best_dict[f'C{cohort}-{drug}-{clf_name}_best'][np.argmax(test_scores)] + '*'
+                    if len(test_scores) > 1:  # mark the tied best method that yields highest test ACC
+                        indicator = '*' if cohort_test == 1 else ('^' if cohort_test == 2 else '~')
+                        best_dict[f'C{cohort}-{drug}-{clf_name}_best'][np.argmax(test_scores)] = best_dict[f'C{cohort}-{drug}-{clf_name}_best'][np.argmax(test_scores)] + indicator
                     intensity[ii, jj] = max(test_scores)
                     labels.append(f'{round(max(test_scores), 2)}/{round(baseline, 2)}')
 
-            if sys.argv[1]:
+            if int(sys.argv[1]):
                 annot = np.array(labels).reshape((len(cohorts),len(cohorts)))
                 s = sns.heatmap(intensity, annot=annot, fmt='', cmap='Blues', xticklabels=cohorts, yticklabels=cohorts)
                 s.set(xlabel='Test', ylabel='Train', title=f'{clf_name} classifier on {drug} use (test ACC/baseline ACC)')
@@ -204,5 +205,5 @@ if __name__ == '__main__':
                 plt.close()
 
     best_df = pd.DataFrame(dict([ (k,pd.Series(v)) for k,v in best_dict.items() ]))
-    if sys.argv[2]:
+    if int(sys.argv[2]):
         best_df.reindex(sorted(best_df.columns), axis=1).to_csv('results/best_performing_methods.csv', index=False)
