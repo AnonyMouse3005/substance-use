@@ -12,7 +12,6 @@ import pandas as pd
 import seaborn as sns
 from genetic_selection import GeneticSelectionCV
 from joblib import Parallel, delayed
-from mlxtend.feature_selection import ExhaustiveFeatureSelector
 from scipy import stats
 from sklearn.datasets import make_multilabel_classification
 from sklearn.decomposition import PCA

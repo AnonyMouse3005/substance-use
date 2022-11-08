@@ -90,7 +90,6 @@ debugpy=1.5.1=py39h295c915_0
 decorator=5.1.1=pyhd3eb1b0_0
 defusedxml=0.7.1=pyhd3eb1b0_0
 diff-match-patch=20200713=pyhd3eb1b0_0
-distlib=0.3.4=pypi_0
 distributed=2022.2.1=pyhd3eb1b0_0
 docutils=0.17.1=py39h06a4308_1
 entrypoints=0.4=py39h06a4308_0
@@ -275,10 +274,7 @@ pep8=1.7.1=py39h06a4308_0
 pexpect=4.8.0=pyhd3eb1b0_3
 pickleshare=0.7.5=pyhd3eb1b0_1003
 pillow=9.0.1=py39h22f2fdc_0
-pip=22.1.2=pypi_0
-pipenv=2022.6.7=pypi_0
 pkginfo=1.8.2=pyhd3eb1b0_0
-platformdirs=2.5.2=pypi_0
 plotly=5.6.0=pyhd3eb1b0_0
 pluggy=1.0.0=py39h06a4308_1
 poyo=0.5.0=pyhd3eb1b0_0
@@ -412,8 +408,6 @@ ujson=5.1.0=py39h295c915_0
 unidecode=1.2.0=pyhd3eb1b0_0
 unixodbc=2.3.9=h7b6447c_0
 urllib3=1.26.9=py39h06a4308_0
-virtualenv=20.14.1=pypi_0
-virtualenv-clone=0.5.7=pypi_0
 w3lib=1.21.0=pyhd3eb1b0_0
 watchdog=2.1.6=py39h06a4308_0
 wcwidth=0.2.5=pyhd3eb1b0_0

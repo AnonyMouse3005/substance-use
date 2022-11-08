@@ -1,4 +1,5 @@
 # %%
+import ast
 import json
 import multiprocessing
 import pickle
@@ -8,7 +9,7 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from genetic_selection import GeneticSelectionCV
+import seaborn as sns
 from joblib import Parallel, delayed
 from scipy import stats
 from sklearn.datasets import make_multilabel_classification
@@ -31,86 +32,60 @@ from sklearn.utils._testing import ignore_warnings
 from tqdm import tqdm
 
 from helper import *
+from genetic_selection import GeneticSelectionCV
+sys.path.insert(0, '/home/nthach17/repo/sklearn-genetic-mod')
+from genetic_selection_mod import GeneticSelectionCV_mod
 
 
 # %% boilerplate
-if len(sys.argv) != 4:
-    print('Usage: python3 learning_curve_v2.py [non-network?] [network?] [non-network+network?]')
+if len(sys.argv) != 5:
+    print('Usage: python3 train_w_nestedCV.py [non-network?] [network?] [non-network+network?] [method_list]')
     sys.exit(1)
 
 
-# %% plot combined learning curves for domain-specific feature groupings
+# %%
 @ignore_warnings(category=ConvergenceWarning)
-def log_regression_tuned(X, y):
+def genetic_alg_mod(clf, clf_name, hparams, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
 
-    clf = LogisticRegression()
-    loocv_scores = cross_val_score(clf, standard_scale(X), y, cv=LeaveOneOut())
+    results = []
+    print(f'classifier: {clf_name}')
+    X = standard_scale(X_raw) if clf_name != 'decision tree' else X_raw
+    for train_idx, test_idx in cv_outer.split(X):
 
-    return clf, np.mean(loocv_scores)
+        X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
+        model = GeneticSelectionCV_mod(
+            clf, cv=cv, verbose=2,
+            scoring="accuracy", max_features=None,
+            n_population=300, crossover_proba=0.5,
+            mutation_proba=0.2, n_generations=40,
+            crossover_independent_proba=0.1,
+            mutation_independent_proba=0.05,
+            tournament_size=3, n_gen_no_change=10,
+            hparams=hparams,
+            caching=False, n_jobs=10)
+        model = model.fit(X_train, y_train)
 
-def pruned_decision_trees_tuned(X, y):
+        X_train_new, X_test_new = X_train[:, model.support_], X_test[:, model.support_]
+        best_params = model.best_params_
+        if hparams:
+            for k, v in best_params.items():
+                if k in ['max_depth']:      v = int(round(v, 0))
+                setattr(clf, k, v)
 
-    clf = DecisionTreeClassifier()
-    loocv_scores = cross_val_score(clf, X, y, cv=LeaveOneOut())
+        results.append(clf.fit(X_train_new, y_train).score(X_test_new, y_test))
+    
+    return np.mean(results)
 
-    return clf, np.mean(loocv_scores)
-
-def svm_tuned(X, y):
-
-    clf = SVC()
-    loocv_scores = cross_val_score(clf, standard_scale(X), y, cv=LeaveOneOut())
-
-    return clf, np.mean(loocv_scores)
-
-
-def plot_LC_tuned(X, y, cohort, drug, fgroup, savefile=None, baseline=1, n_estimators=3):
-
-    fig, axes = plt.subplots(1, n_estimators, figsize=(15, 5))
-
-    # Cross validation with 50 iterations to get smoother mean test and train
-    # score curves, each time with 20% data randomly selected as a validation set.
-    cv = ShuffleSplit(n_splits=50, test_size=0.2, random_state=0)
-
-    title = "Learning Curves (logistic regression)"
-    estimator, lg_score = log_regression_tuned(X, y)
-    plot_learning_curve(
-        estimator, title, standard_scale(X), y, axes=axes[0], ylim=(0.1, 1.01), cv=cv, n_jobs=4, scoring="accuracy", score=lg_score, baseline=baseline
-    )
-
-    title = "Learning Curves (decision tree)"
-    estimator, dt_score = pruned_decision_trees_tuned(X, y)
-    plot_learning_curve(
-        estimator, title, X, y, axes=axes[1], ylim=(0.1, 1.01), cv=cv, n_jobs=4, scoring="accuracy", score=dt_score, baseline=baseline
-    )
-
-    title = "Learning Curves (SVM)"
-    estimator, svm_score = svm_tuned(X, y)
-    plot_learning_curve(
-        estimator, title, standard_scale(X), y, axes=axes[2], ylim=(0.1, 1.01), cv=cv, n_jobs=4, scoring="accuracy", score=svm_score, baseline=baseline
-    )
-
-    suptitle = f'Cohort {cohort}: {drug} use, features {fgroup}'
-    if len(suptitle) > 120:     suptitle = '-\n'.join(suptitle[j:j+120] for j in range(0,len(suptitle), 120))  # break line if title too long
-    fig.suptitle(suptitle)
-    fig.tight_layout()
-    if savefile is None:
-        plt.savefig(f'plots/analysis/learning_curve/C{cohort}-{drug}/C{cohort}-{drug}-{fgroup}_learningCurve.pdf', facecolor='white')
-    else:
-        plt.savefig(savefile, facecolor='white')
-
-    return lg_score, dt_score, svm_score
-
-
-# %% various feature selection heuristics
-word_lim = 90
 
 @ignore_warnings(category=ConvergenceWarning)
-def genetic_alg(clf_dict, X_df, X_raw, y, cohort, drug, baseline, savepath, cv=ShuffleSplit(n_splits=50, test_size=0.1, random_state=0)):
+def genetic_alg(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
 
-    results_dict = {}
-    for clf_name, clf in clf_dict.items():
-        print(f'classifier: {clf_name}')
-        X = standard_scale(X_raw) if clf_name != 'decision tree' else X_raw
+    results = []
+    print(f'classifier: {clf_name}')
+    X = standard_scale(X_raw) if clf_name != 'decision tree' else X_raw
+    for train_idx, test_idx in cv_outer.split(X):
+
+        X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
         model = GeneticSelectionCV(
             clf, cv=cv, verbose=2,
             scoring="accuracy", max_features=None,
@@ -119,107 +94,80 @@ def genetic_alg(clf_dict, X_df, X_raw, y, cohort, drug, baseline, savepath, cv=S
             crossover_independent_proba=0.1,
             mutation_independent_proba=0.05,
             tournament_size=3, n_gen_no_change=10,
-            caching=False, n_jobs=1)
-        model = model.fit(X, y)
+            caching=False, n_jobs=10)
+        model = model.fit(X_train, y_train)
 
-        X_new = X[:, model.support_]
-        selected_features = list(X_df.columns[model.support_])
+        X_train_new, X_test_new = X_train[:, model.support_], X_test[:, model.support_]
+        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True)
+        search.fit(X_train_new, y_train)
 
-        title = f'Learning Curves ({clf_name}) using features selected from genetic algorithm: {selected_features}'
-        if len(title) > word_lim:     title = '-\n'.join(title[j:j+word_lim] for j in range(0,len(title), word_lim))  # break line if title too long
-        scores = cross_val_score(clf, X_new, y, scoring='accuracy', cv=cv)
-        results_dict[clf_name] = {'cv_score': np.mean(scores), 'features': selected_features}
-        plot_learning_curve_v2(
-            clf, title, X_new, y, ylim=(0.1, 1.01), cv=cv, scoring="accuracy", score=np.mean(scores), baseline=baseline
-        )
-        plt.savefig(f'{savepath}/GA/C{cohort}-{drug}-{clf_name}_learningCurve.pdf', facecolor='white')
-
-    return results_dict
+        results.append(search.score(X_test_new, y_test))
+    
+    return np.mean(results)
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def pca(clf_dict, X_df, X_raw, y, cohort, drug, baseline, savepath, cv=ShuffleSplit(n_splits=50, test_size=0.1, random_state=0)):
+def pca(clf, clf_name, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
 
-    results_dict = {}
-    for clf_name, clf in clf_dict.items():
+    results = []
+    for train_idx, test_idx in cv_outer.split(X_raw):
+        X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
         pipe = Pipeline(steps=[("scaler", StandardScaler()), ("pca", PCA()), (clf_name, clf)])
-        PC_max = np.min([X_raw.shape[0]-1, X_raw.shape[1]])
-        param_grid = {"pca__n_components": np.linspace(2, 20, 7, dtype=np.int32)}
-        search = GridSearchCV(pipe, param_grid, cv=cv)
-        search.fit(X_raw, y)
-        results_dict[clf_name] = {'cv_score': search.best_score_}
-        title = f"Learning Curves ({clf_name} from {search.best_params_['pca__n_components']} PCs)"
-        plot_learning_curve_v2(
-            search.best_estimator_, title, X_raw, y, ylim=(0.1, 1.01), cv=cv, scoring="accuracy", score=search.best_score_, baseline=baseline
-        )
-        plt.savefig(f'{savepath}/PCA/C{cohort}-{drug}-{clf_name}_learningCurve.pdf', facecolor='white')
+        param_grid = {"pca__n_components": np.linspace(2, 30, 10, dtype=np.int32)}
+        search = GridSearchCV(pipe, param_grid, cv=cv, refit=True)
+        search.fit(X_train, y_train)
 
-    return results_dict
+        results.append(search.score(X_test, y_test))
+
+    return np.mean(results)
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def chi2_filter(clf_dict, X_df, X_raw, y, cohort, drug, baseline, savepath, cv=ShuffleSplit(n_splits=50, test_size=0.1, random_state=0)):
+def chi2_filter(clf, clf_name, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
 
-    results_dict = {}
-    for clf_name, clf in clf_dict.items():
+    results = []
+    for train_idx, test_idx in cv_outer.split(X_raw):
+        X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
         pipe = Pipeline(steps=[("anova", SelectPercentile(chi2)), (clf_name, clf)]) if clf_name == 'decision tree' \
             else Pipeline(steps=[("anova", SelectPercentile(chi2)), ("scaler", StandardScaler()), (clf_name, clf)])
         param_grid = {"anova__percentile": [3, 6, 10, 15, 20, 30, 40]}
-        cv = ShuffleSplit(n_splits=50, test_size=0.1, random_state=0)
-        search = GridSearchCV(pipe, param_grid, cv=cv)
-        search.fit(X_raw, y)
+        search = GridSearchCV(pipe, param_grid, cv=cv, refit=True)
+        search.fit(X_train, y_train)
         
-        X = standard_scale(X_raw) if clf_name != 'decision tree' else X_raw
-        X_new = X[:,search.best_estimator_['anova'].get_support()]
-        selected_features = list(X_df.columns[search.best_estimator_['anova'].get_support()]) # note that the ordering is lexicographical, not magnitude-based
-        results_dict[clf_name] = {'cv_score': search.best_score_, 'features': selected_features}
-        title = f"Learning Curves ({clf_name}) using features in the {search.best_params_['anova__percentile']}th (chi2) percentile {selected_features}"
-        if len(title) > word_lim:     title = '-\n'.join(title[j:j+word_lim] for j in range(0,len(title), word_lim))  # break line if title too long
-        plot_learning_curve_v2(
-            clf, title, X_new, y, ylim=(0.1, 1.01), cv=cv, scoring="accuracy", score=search.best_score_, baseline=baseline
-        )
-        plt.savefig(f'{savepath}/chi2/C{cohort}-{drug}-{clf_name}_learningCurve.pdf', facecolor='white')
+        if clf_name != 'decision tree':     X_test = standard_scale(X_test)
+        X_test_new = X_test[:,search.best_estimator_['anova'].get_support()]
 
-    return results_dict
+        results.append(search.best_estimator_[clf_name].score(X_test_new, y_test))
 
-
-class Importances:  # return feature importances (from random forest) for SVM with non-linear kernel
-    def __init__(self, X, y):
-        self.X = X
-        self.y = y
-
-    def __call__(self, clf):
-        return permutation_importance(clf, self.X, self.y, n_repeats=10)['importances_mean']
+    return np.mean(results)
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def thresholding(clf_dict, X_df, X_raw, y, cohort, drug, baseline, savepath, cv=ShuffleSplit(n_splits=50, test_size=0.1, random_state=0)):
+def thresholding(clf, clf_name, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
 
-    results_dict = {}
+    results = []
     thresholds = [f"{scale}*mean" for scale in [0.1, 0.5, 0.75, 1, 1.25, 1.5, 2]]
-    for clf_name, clf in clf_dict.items():
-        X = standard_scale(X_raw) if clf_name != 'decision tree' else X_raw
+    X = standard_scale(X_raw) if clf_name != 'decision tree' else X_raw
+    for train_idx, test_idx in cv_outer.split(X_raw):
+        
+        X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
         if clf_name == 'SVM':       clf.kernel = 'linear'  # only linear kernel allows SVM to have coef_
-        importances = Importances(X, y) if clf_name == 'SVM' and clf.kernel != 'linear' else 'auto'
+        importances = 'auto'
         cv_scores = {}
-        for i, th in enumerate(thresholds):
-            model = SelectFromModel(clf.fit(X, y), prefit=True, importance_getter=importances, threshold=th)
-            X_new = model.transform(X)
-            features = list(X_df.columns[model.get_support()])
-            cv_scores[i] = {'score': np.mean(cross_val_score(clf, X_new, y, scoring='accuracy', cv=cv)), 'features': features, 'X_new': X_new}
+        for j, th in enumerate(thresholds):
+            model = SelectFromModel(clf.fit(X_train, y_train), prefit=True, importance_getter=importances, threshold=th)
+            X_train_new, X_test_new = model.transform(X_train), model.transform(X_test)
+            cv_scores[j] = {'score': np.mean(cross_val_score(clf, X_train_new, y_train, scoring='accuracy', cv=cv)),
+                            'X_train_new': X_train_new, 'X_test_new': X_test_new}
 
         best_threshold_idx = np.argmax([i['score'] for i in cv_scores.values()])
-        selected_features = cv_scores[best_threshold_idx]['features']
-        X_new = cv_scores[best_threshold_idx]['X_new']
-        title = f'Learning Curves ({clf_name}) using features above {thresholds[best_threshold_idx]} threshold: {selected_features}'
-        if len(title) > word_lim:     title = '-\n'.join(title[j:j+word_lim] for j in range(0,len(title), word_lim))  # break line if title too long
-        results_dict[clf_name] = {'cv_score': cv_scores[best_threshold_idx]['score'], 'features': selected_features}
-        plot_learning_curve_v2(
-            clf, title, X_new, y, ylim=(0.1, 1.01), cv=cv, scoring="accuracy", score=cv_scores[best_threshold_idx]['score'], baseline=baseline
-        )
-        plt.savefig(f'{savepath}/thresholding/C{cohort}-{drug}-{clf_name}_learningCurve.pdf', facecolor='white')
+        X_train_best, X_test_best = cv_scores[best_threshold_idx]['X_train_new'], cv_scores[best_threshold_idx]['X_test_new']
+        results.append(clf.fit(X_train_best, y_train).score(X_test_best, y_test))
 
-    return results_dict
+    return np.mean(results)
+
+
+# regularization method
 
 
 # %% load dataset
@@ -233,7 +181,8 @@ C2W1nonet_df = pd.read_csv(datapath + 'C2W1_nonnetwork_preimputed.csv')
 C2pred_df = pd.read_csv(datapath + 'C2_nonnetwork_pred.csv')
 C2W1nonet_vars = list(C2W1nonet_df.columns)
 
-C1W1nonet_vars == C2W1nonet_vars
+with open(sys.argv[4], 'r') as f:  # load list containing names of model building methods
+    method_list = json.load(f)
 
 
 # %% domain-specific feature groupings
@@ -254,12 +203,13 @@ fsubs_netnonnet = { 'g12': fsubs_nonnet['g3']+fsubs_net['g10'],
 # %% non-network features
 if int(sys.argv[1]):
 
-    clf_dict = {'logistic regression': LogisticRegression(),
-                'decision tree': DecisionTreeClassifier(),
-                'SVM': SVC()}
+    clf_dict = {
+        # 'logistic regression': LogisticRegression(),
+        # 'decision tree': DecisionTreeClassifier(),
+        'SVM': SVC()}
     scores_dict = {}
-    for cohort in [1, 2, '1+2']:
-        for drug in ['marijuana', 'meth']:
+    for cohort in ['1+2']:
+        for drug in ['meth']:
 
             print(f'At Cohort {cohort}, {drug}')
 
@@ -334,34 +284,25 @@ if int(sys.argv[1]):
             y = y[~np.isnan(y)]
             baseline = stats.mode(y)[1][0]/len(y)
 
-            # Domain-specific feature grouping
-            for gname, fsubs in fsubs_nonnet.items():
-                X = X_imp[:, [f for fgroup in [f_dict[s] for s in fsubs] for f in fgroup]]
-                lg_score, dt_score, svm_score = plot_LC_tuned(X, y, cohort, drug, gname, baseline=baseline)
-                scores_dict[f'{cohort}-{drug}-fgroup'].append(gname)
-                scores_dict[f'{cohort}-{drug}-LG'].append(lg_score)
-                scores_dict[f'{cohort}-{drug}-DT'].append(dt_score)
-                scores_dict[f'{cohort}-{drug}-SVM'].append(svm_score)
-
             # various feature selection methods
-            for m_name, fselect_method in {'pca': pca, 'chi2': chi2_filter, 'thresholding': thresholding, 'genetic alg': genetic_alg}.items():
+            for m_name, fselect_method in {'genetic alg': genetic_alg}.items():
                 print(f'Start running {m_name}')
                 results = fselect_method(clf_dict, Xenc_df, X_imp, y, cohort, drug, baseline, 'plots/analysis/learning_curve/feature_selection')
                 
                 if m_name != 'pca':
-                    scores_dict[f'{cohort}-{drug}-fgroup'].extend([m_name, np.nan])
-                    scores_dict[f'{cohort}-{drug}-LG'].extend([results['logistic regression']['cv_score'], results['logistic regression']['features']])
-                    scores_dict[f'{cohort}-{drug}-DT'].extend([results['decision tree']['cv_score'], results['decision tree']['features']])
+                    # scores_dict[f'{cohort}-{drug}-fgroup'].extend([m_name, np.nan])
+                    # scores_dict[f'{cohort}-{drug}-LG'].extend([results['logistic regression']['cv_score'], results['logistic regression']['features']])
+                    # scores_dict[f'{cohort}-{drug}-DT'].extend([results['decision tree']['cv_score'], results['decision tree']['features']])
                     scores_dict[f'{cohort}-{drug}-SVM'].extend([results['SVM']['cv_score'], results['SVM']['features']])
                 else:
-                    scores_dict[f'{cohort}-{drug}-fgroup'].append(m_name)
-                    scores_dict[f'{cohort}-{drug}-LG'].append(results['logistic regression']['cv_score'])
-                    scores_dict[f'{cohort}-{drug}-DT'].append(results['decision tree']['cv_score'])
+                    # scores_dict[f'{cohort}-{drug}-fgroup'].append(m_name)
+                    # scores_dict[f'{cohort}-{drug}-LG'].append(results['logistic regression']['cv_score'])
+                    # scores_dict[f'{cohort}-{drug}-DT'].append(results['decision tree']['cv_score'])
                     scores_dict[f'{cohort}-{drug}-SVM'].append(results['SVM']['cv_score'])
 
             scores_dict[f'{cohort}-{drug}-baseline'] = [baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
-    pd.DataFrame.from_dict(scores_dict).to_csv('results/scores_nonnetwork.csv', index=False)
+    # pd.DataFrame.from_dict(scores_dict).to_csv('results/scores_nonnetwork.csv', index=False)
 
 
 # %% network features
@@ -424,14 +365,14 @@ if int(sys.argv[2]):
             baseline = stats.mode(y)[1][0]/len(y)
 
             # Domain-specific feature grouping
-            for gname, fsubs in fsubs_net.items():
-                X = X_np[:, [f for fgroup in [f_dict[s] for s in fsubs] for f in fgroup]]
-                savefile = f'plots/analysis/learning_curve/net/C{cohort}-{drug}/C{cohort}-{drug}-{gname}_learningCurve.pdf'
-                lg_score, dt_score, svm_score = plot_LC_tuned(X, y, cohort, drug, gname, savefile=savefile, baseline=baseline)
-                scores_dict[f'{cohort}-{drug}-fgroup'].append(gname)
-                scores_dict[f'{cohort}-{drug}-LG'].append(lg_score)
-                scores_dict[f'{cohort}-{drug}-DT'].append(dt_score)
-                scores_dict[f'{cohort}-{drug}-SVM'].append(svm_score)
+            # for gname, fsubs in fsubs_net.items():
+            #     X = X_np[:, [f for fgroup in [f_dict[s] for s in fsubs] for f in fgroup]]
+            #     savefile = f'plots/analysis/learning_curve/net/C{cohort}-{drug}/C{cohort}-{drug}-{gname}_learningCurve.pdf'
+            #     lg_score, dt_score, svm_score = plot_LC_tuned(X, y, cohort, drug, gname, savefile=savefile, baseline=baseline)
+            #     scores_dict[f'{cohort}-{drug}-fgroup'].append(gname)
+            #     scores_dict[f'{cohort}-{drug}-LG'].append(lg_score)
+            #     scores_dict[f'{cohort}-{drug}-DT'].append(dt_score)
+            #     scores_dict[f'{cohort}-{drug}-SVM'].append(svm_score)
 
             # various feature selection methods
             for m_name, fselect_method in {'pca': pca, 'chi2': chi2_filter, 'thresholding': thresholding, 'genetic alg': genetic_alg}.items():
@@ -457,12 +398,24 @@ if int(sys.argv[2]):
 # %% network+nonnetwork features
 if int(sys.argv[3]):
 
-    clf_dict = {'logistic regression': LogisticRegression(),
-                'decision tree': DecisionTreeClassifier(),
-                'SVM': SVC()}
+    clf_dict = {
+        'LG': LogisticRegression(),
+        'DT': DecisionTreeClassifier(),
+        'SVM': SVC()
+    }
+    clf_params = {
+        'LG': {'names': ['C'], 'range': [(0.01, 10000)], 'bitwidth': 8},
+        'DT': {'names': ['max_depth'], 'range': [(3, 10)], 'bitwidth': 4},
+        'SVM': {'names': ['gamma','C'], 'range': [(0.0001, 10), (1, 1000)], 'bitwidth': 8}
+    }
+    clf_param_grid = {
+        'LG': dict(C=np.logspace(-4,4,10)),
+        'DT': dict(max_depth=range(3,10)),
+        'SVM': dict(kernel='rbf', C=np.logspace(-4,4,10))
+    }
     scores_dict = {}
     for cohort in [1,2,'1+2']:
-        for drug in ['marijuana', 'meth']:
+        for drug in ['marijuana','meth']:
 
             print(f'At Cohort {cohort}, {drug}')
 
@@ -551,40 +504,40 @@ if int(sys.argv[3]):
             X_all = np.concatenate((X_imp, X_np), axis=1)
             X_df = pd.concat([Xenc_df, Xnet_df], axis=1)
 
-            # Learning curve
+            # Nested CV
             y = np.array(dep_var_full)
             y = y[~np.isnan(y)]
             baseline = stats.mode(y)[1][0]/len(y)
+            cv_inner, cv_outer = 10, LeaveOneOut()
 
             # Domain-specific feature grouping
             for gname, fsubs in fsubs_netnonnet.items():
                 X_nonet = X_imp[:, [f for fgroup in [f_nonet_dict[s] for s in fsubs if s in fgroups_nonet] for f in fgroup]]
                 X_net = X_np[:, [f for fgroup in [f_net_dict[s] for s in fsubs if s in fgroups_net] for f in fgroup]]
                 X = np.concatenate((X_nonet, X_net), axis=1)
-                savefile = f'plots/analysis/learning_curve/nonnet+net/C{cohort}-{drug}/C{cohort}-{drug}-{gname}_learningCurve.pdf'
-                lg_score, dt_score, svm_score = plot_LC_tuned(X, y, cohort, drug, gname, savefile=savefile, baseline=baseline)
-                scores_dict[f'{cohort}-{drug}-fgroup'].append(gname)
-                scores_dict[f'{cohort}-{drug}-LG'].append(lg_score)
-                scores_dict[f'{cohort}-{drug}-DT'].append(dt_score)
-                scores_dict[f'{cohort}-{drug}-SVM'].append(svm_score)
+                for clf_name, clf in clf_dict.items():
+                    scores = []
+                    for train_idx, test_idx in cv_outer.split(X):
+                        X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
+                        if clf_name != 'decision tree':
+                            X_train = standard_scale(X_train)
+                            X_test = standard_scale(X_test)
+                        clf.fit(X_train, y_train)
+                        scores.append(clf.score(X_test, y_test))
+                    scores_dict[f'{cohort}-{drug}-{clf_name}'].append(np.mean(scores))
 
             # various feature selection methods
-            for m_name, fselect_method in {'pca': pca, 'chi2': chi2_filter, 'thresholding': thresholding, 'genetic alg': genetic_alg}.items():
-                print(f'Start running {m_name}')
-                results = fselect_method(clf_dict, X_df, X_all, y, cohort, drug, baseline, 'plots/analysis/learning_curve/nonnet+net/feature_selection')
-                
-                if m_name != 'pca':
-                    scores_dict[f'{cohort}-{drug}-fgroup'].extend([m_name, np.nan])
-                    scores_dict[f'{cohort}-{drug}-LG'].extend([results['logistic regression']['cv_score'], results['logistic regression']['features']])
-                    scores_dict[f'{cohort}-{drug}-DT'].extend([results['decision tree']['cv_score'], results['decision tree']['features']])
-                    scores_dict[f'{cohort}-{drug}-SVM'].extend([results['SVM']['cv_score'], results['SVM']['features']])
-                else:
-                    scores_dict[f'{cohort}-{drug}-fgroup'].append(m_name)
-                    scores_dict[f'{cohort}-{drug}-LG'].append(results['logistic regression']['cv_score'])
-                    scores_dict[f'{cohort}-{drug}-DT'].append(results['decision tree']['cv_score'])
-                    scores_dict[f'{cohort}-{drug}-SVM'].append(results['SVM']['cv_score'])
+            for m_name in method_list:
+                scores_dict[f'{cohort}-{drug}-fgroup'].append(m_name)
+                for clf_name, clf in clf_dict.items():
+                    print(f'Start running {m_name} for {clf_name}')
+                    if m_name == 'thresholding':    final_score = thresholding(clf, clf_name, X_all, y, cv_inner, cv_outer)
+                    if m_name == 'chi2':    final_score = chi2_filter(clf, clf_name, X_all, y, cv_inner, cv_outer)
+                    if m_name == 'pca':    final_score = pca(clf, clf_name, X_all, y, cv_inner, cv_outer)
+                    if m_name == "genetic alg":     final_score = genetic_alg(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer)
+                    if m_name == "genetic alg (mod)":   final_score = genetic_alg_mod(clf, clf_name, clf_params[clf_name], X_all, y, cv_inner, cv_outer)
+                    scores_dict[f'{cohort}-{drug}-{clf_name}'].append(final_score)
 
             scores_dict[f'{cohort}-{drug}-baseline'] = [baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
-
-    pd.DataFrame.from_dict(scores_dict).to_csv('results/scores_nonnetwork+network.csv', index=False)
+    pd.DataFrame.from_dict(scores_dict).to_csv('results/nested_CV_scores_nonnetwork+network.csv', index=False)
