@@ -1,0 +1,7 @@
+{
+    "cohorts": ["1+2"],
+    "drugs": ["marijuana"],
+    "methods": ["pca", "chi2"],
+    "cv_inner": 10,
+    "cv_outer": "LOO"
+}

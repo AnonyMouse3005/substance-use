@@ -31,6 +31,8 @@ from sklearn.utils._testing import ignore_warnings
 from tqdm import tqdm
 
 from helper import *
+sys.path.insert(0, '/home/nthach17/repo/sklearn-genetic-mod')
+from genetic_selection_mod import GeneticSelectionCV_mod
 
 
 # %% boilerplate
@@ -111,7 +113,7 @@ def genetic_alg(clf_dict, X_df, X_raw, y, cohort, drug, baseline, savepath, cv=S
     for clf_name, clf in clf_dict.items():
         print(f'classifier: {clf_name}')
         X = standard_scale(X_raw) if clf_name != 'decision tree' else X_raw
-        model = GeneticSelectionCV(
+        model = GeneticSelectionCV_mod(
             clf, cv=cv, verbose=2,
             scoring="accuracy", max_features=None,
             n_population=300, crossover_proba=0.5,
@@ -119,7 +121,7 @@ def genetic_alg(clf_dict, X_df, X_raw, y, cohort, drug, baseline, savepath, cv=S
             crossover_independent_proba=0.1,
             mutation_independent_proba=0.05,
             tournament_size=3, n_gen_no_change=10,
-            caching=False, n_jobs=1)
+            caching=False, n_jobs=10)
         model = model.fit(X, y)
 
         X_new = X[:, model.support_]
@@ -461,7 +463,7 @@ if int(sys.argv[3]):
                 'decision tree': DecisionTreeClassifier(),
                 'SVM': SVC()}
     scores_dict = {}
-    for cohort in [1,2,'1+2']:
+    for cohort in [2,'1+2']:
         for drug in ['marijuana', 'meth']:
 
             print(f'At Cohort {cohort}, {drug}')
@@ -569,7 +571,7 @@ if int(sys.argv[3]):
                 scores_dict[f'{cohort}-{drug}-SVM'].append(svm_score)
 
             # various feature selection methods
-            for m_name, fselect_method in {'pca': pca, 'chi2': chi2_filter, 'thresholding': thresholding, 'genetic alg': genetic_alg}.items():
+            for m_name, fselect_method in {'genetic alg': genetic_alg}.items():
                 print(f'Start running {m_name}')
                 results = fselect_method(clf_dict, X_df, X_all, y, cohort, drug, baseline, 'plots/analysis/learning_curve/nonnet+net/feature_selection')
                 

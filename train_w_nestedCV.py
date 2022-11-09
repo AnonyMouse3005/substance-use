@@ -39,7 +39,7 @@ from genetic_selection_mod import GeneticSelectionCV_mod
 
 # %% boilerplate
 if len(sys.argv) != 5:
-    print('Usage: python3 train_w_nestedCV.py [non-network?] [network?] [non-network+network?] [method_list]')
+    print('Usage: python3 train_w_nestedCV.py [non-network?] [network?] [non-network+network?] [goal_dict.json]')
     sys.exit(1)
 
 
@@ -49,12 +49,15 @@ def genetic_alg_mod(clf, clf_name, hparams, X_raw, y, cv=10, cv_outer=LeaveOneOu
 
     results = []
     print(f'classifier: {clf_name}')
-    X = standard_scale(X_raw) if clf_name != 'decision tree' else X_raw
+    X = standard_scale(X_raw) if clf_name != 'DT' else X_raw
+    i = 0
     for train_idx, test_idx in cv_outer.split(X):
-
+        i += 1
+        n_splits = cv_outer.n_splits if hasattr(cv_outer, 'n_splits') else X.shape[0]
+        print(f'At fold {i}/{n_splits} (outer CV)')
         X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
         model = GeneticSelectionCV_mod(
-            clf, cv=cv, verbose=2,
+            clf, cv=cv, verbose=0,
             scoring="accuracy", max_features=None,
             n_population=300, crossover_proba=0.5,
             mutation_proba=0.2, n_generations=40,
@@ -82,12 +85,15 @@ def genetic_alg(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneO
 
     results = []
     print(f'classifier: {clf_name}')
-    X = standard_scale(X_raw) if clf_name != 'decision tree' else X_raw
+    X = standard_scale(X_raw) if clf_name != 'DT' else X_raw
+    i = 0
     for train_idx, test_idx in cv_outer.split(X):
-
+        i += 1
+        n_splits = cv_outer.n_splits if hasattr(cv_outer, 'n_splits') else X.shape[0]
+        print(f'At fold {i}/{n_splits} (outer CV)')
         X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
         model = GeneticSelectionCV(
-            clf, cv=cv, verbose=2,
+            clf, cv=cv, verbose=0,
             scoring="accuracy", max_features=None,
             n_population=300, crossover_proba=0.5,
             mutation_proba=0.2, n_generations=40,
@@ -107,48 +113,66 @@ def genetic_alg(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneO
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def pca(clf, clf_name, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
+def pca(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
 
     results = []
-    for train_idx, test_idx in cv_outer.split(X_raw):
-        X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
-        pipe = Pipeline(steps=[("scaler", StandardScaler()), ("pca", PCA()), (clf_name, clf)])
-        param_grid = {"pca__n_components": np.linspace(2, 30, 10, dtype=np.int32)}
-        search = GridSearchCV(pipe, param_grid, cv=cv, refit=True)
-        search.fit(X_train, y_train)
+    n_components = np.linspace(2, 20, 10, dtype=np.int32)
+    X = standard_scale(X_raw)
+    for train_idx, test_idx in cv_outer.split(X):
 
-        results.append(search.score(X_test, y_test))
+        X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
+        cv_scores = {}
+        for j, n_pc in enumerate(n_components):
+            model = PCA(n_components=n_pc)
+            X_train_new = model.fit_transform(X_train)
+            X_test_new = model.transform(X_test)
+            cv_scores[j] = {'score': np.mean(cross_val_score(clf, X_train_new, y_train, scoring='accuracy', cv=cv)),
+                            'X_train_new': X_train_new, 'X_test_new': X_test_new}
+
+        best_pc_idx = np.argmax([i['score'] for i in cv_scores.values()])
+        X_train_best, X_test_best = cv_scores[best_pc_idx]['X_train_new'], cv_scores[best_pc_idx]['X_test_new']
+        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True)
+        search.fit(X_train_best, y_train)
+
+        results.append(search.score(X_test_best, y_test))
 
     return np.mean(results)
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def chi2_filter(clf, clf_name, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
+def chi2_filter(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
 
     results = []
-    for train_idx, test_idx in cv_outer.split(X_raw):
-        X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
-        pipe = Pipeline(steps=[("anova", SelectPercentile(chi2)), (clf_name, clf)]) if clf_name == 'decision tree' \
-            else Pipeline(steps=[("anova", SelectPercentile(chi2)), ("scaler", StandardScaler()), (clf_name, clf)])
-        param_grid = {"anova__percentile": [3, 6, 10, 15, 20, 30, 40]}
-        search = GridSearchCV(pipe, param_grid, cv=cv, refit=True)
-        search.fit(X_train, y_train)
-        
-        if clf_name != 'decision tree':     X_test = standard_scale(X_test)
-        X_test_new = X_test[:,search.best_estimator_['anova'].get_support()]
+    percentiles = [3, 6, 10, 15, 20, 30, 40]
+    X = standard_scale(X_raw) if clf_name != 'DT' else X_raw
+    for train_idx, test_idx in cv_outer.split(X):
 
-        results.append(search.best_estimator_[clf_name].score(X_test_new, y_test))
+        X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
+        cv_scores = {}
+        for j, pc in enumerate(percentiles):
+            model = SelectPercentile(chi2, percentile=pc)
+            X_train_new = model.fit_transform(X_train, y_train)
+            X_test_new = model.transform(X_test)
+            cv_scores[j] = {'score': np.mean(cross_val_score(clf, X_train_new, y_train, scoring='accuracy', cv=cv)),
+                            'X_train_new': X_train_new, 'X_test_new': X_test_new}
+
+        best_pc_idx = np.argmax([i['score'] for i in cv_scores.values()])
+        X_train_best, X_test_best = cv_scores[best_pc_idx]['X_train_new'], cv_scores[best_pc_idx]['X_test_new']
+        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True)
+        search.fit(X_train_best, y_train)
+
+        results.append(search.score(X_test_best, y_test))
 
     return np.mean(results)
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def thresholding(clf, clf_name, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
+def thresholding(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
 
     results = []
     thresholds = [f"{scale}*mean" for scale in [0.1, 0.5, 0.75, 1, 1.25, 1.5, 2]]
-    X = standard_scale(X_raw) if clf_name != 'decision tree' else X_raw
-    for train_idx, test_idx in cv_outer.split(X_raw):
+    X = standard_scale(X_raw) if clf_name != 'DT' else X_raw
+    for train_idx, test_idx in cv_outer.split(X):
         
         X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
         if clf_name == 'SVM':       clf.kernel = 'linear'  # only linear kernel allows SVM to have coef_
@@ -160,58 +184,23 @@ def thresholding(clf, clf_name, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
             cv_scores[j] = {'score': np.mean(cross_val_score(clf, X_train_new, y_train, scoring='accuracy', cv=cv)),
                             'X_train_new': X_train_new, 'X_test_new': X_test_new}
 
-        best_threshold_idx = np.argmax([i['score'] for i in cv_scores.values()])
-        X_train_best, X_test_best = cv_scores[best_threshold_idx]['X_train_new'], cv_scores[best_threshold_idx]['X_test_new']
-        results.append(clf.fit(X_train_best, y_train).score(X_test_best, y_test))
+        best_pc_idx = np.argmax([i['score'] for i in cv_scores.values()])
+        X_train_best, X_test_best = cv_scores[best_pc_idx]['X_train_new'], cv_scores[best_pc_idx]['X_test_new']
+        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True)
+        search.fit(X_train_best, y_train)
+
+        results.append(search.score(X_test_best, y_test))
 
     return np.mean(results)
 
 
-# regularization method
-
-
-# %% load dataset
-datapath = 'data/original/pre-imputed/'
-
-C1W1nonet_df = pd.read_csv(datapath + 'C1W1_nonnetwork_preimputed.csv')
-C1pred_df = pd.read_csv(datapath + 'C1_nonnetwork_pred.csv')
-C1W1nonet_vars = list(C1W1nonet_df.columns)
-
-C2W1nonet_df = pd.read_csv(datapath + 'C2W1_nonnetwork_preimputed.csv')
-C2pred_df = pd.read_csv(datapath + 'C2_nonnetwork_pred.csv')
-C2W1nonet_vars = list(C2W1nonet_df.columns)
-
-with open(sys.argv[4], 'r') as f:  # load list containing names of model building methods
-    method_list = json.load(f)
-
-
-# %% domain-specific feature groupings
-fsubs_1, fsubs_2, fsubs_3, fsubs_4 = ['SC'], ['DM'], ['TB','AL','ID','ND','DA','OD'], ['TX','AC','CJ']
-fsubs_5 = fsubs_1 + fsubs_2
-fsubs_6 = fsubs_1 + fsubs_2 + fsubs_3
-fsubs_7 = fsubs_1 + fsubs_2 + fsubs_4
-fsubs_8 = fsubs_1 + fsubs_2 + fsubs_3 + fsubs_4
-fsubs_nonnet = {'g1': fsubs_1, 'g2': fsubs_2, 'g3': fsubs_3, 'g4': fsubs_4, 'g5': fsubs_5, 'g6': fsubs_6, 'g7': fsubs_7, 'g8': fsubs_8}
-
-fsubs_net = {'g9': ['NSX'], 'g10': ['NDX'], 'g11': ['NSX','NDX']}
-
-fsubs_netnonnet = { 'g12': fsubs_nonnet['g3']+fsubs_net['g10'],
-                    'g13': fsubs_nonnet['g6']+fsubs_net['g10'],
-                    'g14': fsubs_nonnet['g8']+fsubs_net['g11']}
-
-
-# %% non-network features
-if int(sys.argv[1]):
-
-    clf_dict = {
-        # 'logistic regression': LogisticRegression(),
-        # 'decision tree': DecisionTreeClassifier(),
-        'SVM': SVC()}
+# %% which feature type to use for training?
+def run_nonnetwork():
     scores_dict = {}
-    for cohort in ['1+2']:
-        for drug in ['meth']:
+    for cohort in cohorts:
+        for drug in drugs:
 
-            print(f'At Cohort {cohort}, {drug}')
+            print(f'At Cohort {cohort}, {drug} using non-network features')
 
             scores_dict[f'{cohort}-{drug}-fgroup'] = []
             scores_dict[f'{cohort}-{drug}-LG'], scores_dict[f'{cohort}-{drug}-DT'], scores_dict[f'{cohort}-{drug}-SVM'] = [], [], []
@@ -241,7 +230,6 @@ if int(sys.argv[1]):
             discarded_vars = ['PID','PID2','AL6B','ID13','ID14_4','ID14_5','ID14_6','ID14_7','ND13','ND15_4','ND15_5','ND15_6','ND15_7',
                         'DA5','DA6','DA7','DA7a','DA7b','DA7c','DA7d','DA8','DA8a','DA8b','DA8c','DA8d'] + [v for v in list(df.columns) if 'TEXT' in v]
             nominal_vars = ['DM8','DM10','DM12','DM13']
-            indep_vars = list(df.drop(columns=discarded_vars).columns)
             
             dep_var_full = []
             for a, b in pred_var:
@@ -271,7 +259,6 @@ if int(sys.argv[1]):
             f_dict = {}
             fgroups = ['SC', 'DM', 'TB', 'AL', 'ID', 'ND', 'DA', 'OD', 'TX', 'AC', 'CJ']  # feature groups
             for g in fgroups:
-                features = [c for c in Xenc_df if c.startswith(g)]
                 f_indices = [Xenc_df.columns.get_loc(c) for c in Xenc_df if c.startswith(g)]  # column indices of the group's features
                 f_dict[g] = f_indices
 
@@ -284,38 +271,52 @@ if int(sys.argv[1]):
             y = y[~np.isnan(y)]
             baseline = stats.mode(y)[1][0]/len(y)
 
+            # Domain-specific feature grouping
+            if 'manual' in methods:
+                for gname, fsubs in fsubs_nonnet.items():
+                    scores_dict[f'{cohort}-{drug}-fgroup'].append(gname)
+                    X = X_imp[:, [f for fgroup in [f_dict[s] for s in fsubs] for f in fgroup]]
+                    for clf_name, clf in clf_dict.items():
+                        print(f'Cohort {cohort}, {drug}: start running manual grouping {gname} for {clf_name}')
+                        if clf_name == 'LG':    clf.solver, clf.penalty = 'liblinear', 'l1'
+                        scores = []
+                        i = 1
+                        for train_idx, test_idx in cv_outer.split(X):
+                            print(f'fold {i}')
+                            i+=1
+                            X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
+                            if clf_name != 'DT':
+                                X_train = standard_scale(X_train)
+                                X_test = standard_scale(X_test)
+                            search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=5)
+                            search.fit(X_train, y_train)
+                            scores.append(search.score(X_test, y_test))
+                        scores_dict[f'{cohort}-{drug}-{clf_name}'].append(np.mean(scores))
+
             # various feature selection methods
-            for m_name, fselect_method in {'genetic alg': genetic_alg}.items():
-                print(f'Start running {m_name}')
-                results = fselect_method(clf_dict, Xenc_df, X_imp, y, cohort, drug, baseline, 'plots/analysis/learning_curve/feature_selection')
-                
-                if m_name != 'pca':
-                    # scores_dict[f'{cohort}-{drug}-fgroup'].extend([m_name, np.nan])
-                    # scores_dict[f'{cohort}-{drug}-LG'].extend([results['logistic regression']['cv_score'], results['logistic regression']['features']])
-                    # scores_dict[f'{cohort}-{drug}-DT'].extend([results['decision tree']['cv_score'], results['decision tree']['features']])
-                    scores_dict[f'{cohort}-{drug}-SVM'].extend([results['SVM']['cv_score'], results['SVM']['features']])
-                else:
-                    # scores_dict[f'{cohort}-{drug}-fgroup'].append(m_name)
-                    # scores_dict[f'{cohort}-{drug}-LG'].append(results['logistic regression']['cv_score'])
-                    # scores_dict[f'{cohort}-{drug}-DT'].append(results['decision tree']['cv_score'])
-                    scores_dict[f'{cohort}-{drug}-SVM'].append(results['SVM']['cv_score'])
+            for m_name in methods:
+                if m_name == 'manual':  continue
+                scores_dict[f'{cohort}-{drug}-fgroup'].append(m_name)
+                for clf_name, clf in clf_dict.items():
+                    print(f'Cohort {cohort}, {drug}: start running {m_name} for {clf_name}')
+                    if m_name == 'thresholding':    final_score = thresholding(clf, clf_name, clf_param_grid[clf_name], X_imp, y, cv_inner, cv_outer)
+                    if m_name == 'chi2':    final_score = chi2_filter(clf, clf_name, clf_param_grid[clf_name], X_imp, y, cv_inner, cv_outer)
+                    if m_name == 'pca':    final_score = pca(clf, clf_name, clf_param_grid[clf_name], X_imp, y, cv_inner, cv_outer)
+                    if m_name == "GA":     final_score = genetic_alg(clf, clf_name, clf_param_grid[clf_name], X_imp, y, cv_inner, cv_outer)
+                    if m_name == "GAmod":   final_score = genetic_alg_mod(clf, clf_name, clf_params[clf_name], X_imp, y, cv_inner, cv_outer)
+                    scores_dict[f'{cohort}-{drug}-{clf_name}'].append(final_score)
 
             scores_dict[f'{cohort}-{drug}-baseline'] = [baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
-    # pd.DataFrame.from_dict(scores_dict).to_csv('results/scores_nonnetwork.csv', index=False)
+    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nested_CV_scores_nonnetwork_{goals_code}.csv', index=False)
 
 
-# %% network features
-if int(sys.argv[2]):
-
-    clf_dict = {'logistic regression': LogisticRegression(),
-                'decision tree': DecisionTreeClassifier(),
-                'SVM': SVC()}
+def run_network():
     scores_dict = {}
-    for cohort in [1, 2, '1+2']:
-        for drug in ['marijuana', 'meth']:
+    for cohort in cohorts:
+        for drug in drugs:
 
-            print(f'At Cohort {cohort}, {drug}')
+            print(f'At Cohort {cohort}, {drug} using network features')
 
             scores_dict[f'{cohort}-{drug}-fgroup'] = []
             scores_dict[f'{cohort}-{drug}-LG'], scores_dict[f'{cohort}-{drug}-DT'], scores_dict[f'{cohort}-{drug}-SVM'] = [], [], []
@@ -353,7 +354,6 @@ if int(sys.argv[2]):
             f_dict = {}
             fgroups = ['NSX','NDX']  # feature groups
             for g in fgroups:
-                features = [c for c in X_df if c.startswith(g) or g[:2] in c]
                 f_indices = [X_df.columns.get_loc(c) for c in X_df if c.startswith(g)]  # column indices of the group's features
                 f_dict[g] = f_indices
 
@@ -365,59 +365,48 @@ if int(sys.argv[2]):
             baseline = stats.mode(y)[1][0]/len(y)
 
             # Domain-specific feature grouping
-            # for gname, fsubs in fsubs_net.items():
-            #     X = X_np[:, [f for fgroup in [f_dict[s] for s in fsubs] for f in fgroup]]
-            #     savefile = f'plots/analysis/learning_curve/net/C{cohort}-{drug}/C{cohort}-{drug}-{gname}_learningCurve.pdf'
-            #     lg_score, dt_score, svm_score = plot_LC_tuned(X, y, cohort, drug, gname, savefile=savefile, baseline=baseline)
-            #     scores_dict[f'{cohort}-{drug}-fgroup'].append(gname)
-            #     scores_dict[f'{cohort}-{drug}-LG'].append(lg_score)
-            #     scores_dict[f'{cohort}-{drug}-DT'].append(dt_score)
-            #     scores_dict[f'{cohort}-{drug}-SVM'].append(svm_score)
+            if 'manual' in methods:
+                for gname, fsubs in fsubs_net.items():
+                    scores_dict[f'{cohort}-{drug}-fgroup'].append(gname)
+                    X = X_np[:, [f for fgroup in [f_dict[s] for s in fsubs] for f in fgroup]]
+                    for clf_name, clf in clf_dict.items():
+                        print(f'Cohort {cohort}, {drug}: start running manual grouping {gname} for {clf_name}')
+                        if clf_name == 'LG':    clf.solver, clf.penalty = 'liblinear', 'l1'
+                        scores = []
+                        for train_idx, test_idx in cv_outer.split(X):
+                            X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
+                            if clf_name != 'DT':
+                                X_train = standard_scale(X_train)
+                                X_test = standard_scale(X_test)
+                            search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=5)
+                            search.fit(X_train, y_train)
+                            scores.append(search.score(X_test, y_test))
+                        scores_dict[f'{cohort}-{drug}-{clf_name}'].append(np.mean(scores))
 
             # various feature selection methods
-            for m_name, fselect_method in {'pca': pca, 'chi2': chi2_filter, 'thresholding': thresholding, 'genetic alg': genetic_alg}.items():
-                print(f'Start running {m_name}')
-                results = fselect_method(clf_dict, X_df, X_np, y, cohort, drug, baseline, 'plots/analysis/learning_curve/net/feature_selection')
-                
-                if m_name != 'pca':
-                    scores_dict[f'{cohort}-{drug}-fgroup'].extend([m_name, np.nan])
-                    scores_dict[f'{cohort}-{drug}-LG'].extend([results['logistic regression']['cv_score'], results['logistic regression']['features']])
-                    scores_dict[f'{cohort}-{drug}-DT'].extend([results['decision tree']['cv_score'], results['decision tree']['features']])
-                    scores_dict[f'{cohort}-{drug}-SVM'].extend([results['SVM']['cv_score'], results['SVM']['features']])
-                else:
-                    scores_dict[f'{cohort}-{drug}-fgroup'].append(m_name)
-                    scores_dict[f'{cohort}-{drug}-LG'].append(results['logistic regression']['cv_score'])
-                    scores_dict[f'{cohort}-{drug}-DT'].append(results['decision tree']['cv_score'])
-                    scores_dict[f'{cohort}-{drug}-SVM'].append(results['SVM']['cv_score'])
+            for m_name in methods:
+                if m_name == 'manual':  continue
+                scores_dict[f'{cohort}-{drug}-fgroup'].append(m_name)
+                for clf_name, clf in clf_dict.items():
+                    print(f'Cohort {cohort}, {drug}: start running {m_name} for {clf_name}')
+                    if m_name == 'thresholding':    final_score = thresholding(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer)
+                    if m_name == 'chi2':    final_score = chi2_filter(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer)
+                    if m_name == 'pca':    final_score = pca(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer)
+                    if m_name == "GA":     final_score = genetic_alg(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer)
+                    if m_name == "GAmod":   final_score = genetic_alg_mod(clf, clf_name, clf_params[clf_name], X_np, y, cv_inner, cv_outer)
+                    scores_dict[f'{cohort}-{drug}-{clf_name}'].append(final_score)
 
             scores_dict[f'{cohort}-{drug}-baseline'] = [baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
-    pd.DataFrame.from_dict(scores_dict).to_csv('results/scores_network.csv', index=False)
+    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nested_CV_scores_network_{goals_code}.csv', index=False)
 
 
-# %% network+nonnetwork features
-if int(sys.argv[3]):
-
-    clf_dict = {
-        'LG': LogisticRegression(),
-        'DT': DecisionTreeClassifier(),
-        'SVM': SVC()
-    }
-    clf_params = {
-        'LG': {'names': ['C'], 'range': [(0.01, 10000)], 'bitwidth': 8},
-        'DT': {'names': ['max_depth'], 'range': [(3, 10)], 'bitwidth': 4},
-        'SVM': {'names': ['gamma','C'], 'range': [(0.0001, 10), (1, 1000)], 'bitwidth': 8}
-    }
-    clf_param_grid = {
-        'LG': dict(C=np.logspace(-4,4,10)),
-        'DT': dict(max_depth=range(3,10)),
-        'SVM': dict(kernel='rbf', C=np.logspace(-4,4,10))
-    }
+def run_netnonnetwork():
     scores_dict = {}
-    for cohort in [1,2,'1+2']:
-        for drug in ['marijuana','meth']:
+    for cohort in cohorts:
+        for drug in drugs:
 
-            print(f'At Cohort {cohort}, {drug}')
+            print(f'At Cohort {cohort}, {drug} using network + non-network features')
 
             scores_dict[f'{cohort}-{drug}-fgroup'] = []
             scores_dict[f'{cohort}-{drug}-LG'], scores_dict[f'{cohort}-{drug}-DT'], scores_dict[f'{cohort}-{drug}-SVM'] = [], [], []
@@ -478,7 +467,6 @@ if int(sys.argv[3]):
             f_nonet_dict = {}
             fgroups_nonet = ['SC', 'DM', 'TB', 'AL', 'ID', 'ND', 'DA', 'OD', 'TX', 'AC', 'CJ']  # feature groups
             for g in fgroups_nonet:
-                features = [c for c in Xenc_df if c.startswith(g)]
                 f_indices = [Xenc_df.columns.get_loc(c) for c in Xenc_df if c.startswith(g)]  # column indices of the group's features
                 f_nonet_dict[g] = f_indices
 
@@ -494,7 +482,6 @@ if int(sys.argv[3]):
             f_net_dict = {}
             fgroups_net = ['NSX','NDX']  # feature groups
             for g in fgroups_net:
-                features = [c for c in Xnet_df if c.startswith(g) or g[:2] in c]
                 f_indices = [Xnet_df.columns.get_loc(c) for c in Xnet_df if c.startswith(g)]  # column indices of the group's features
                 f_net_dict[g] = f_indices
 
@@ -508,36 +495,108 @@ if int(sys.argv[3]):
             y = np.array(dep_var_full)
             y = y[~np.isnan(y)]
             baseline = stats.mode(y)[1][0]/len(y)
-            cv_inner, cv_outer = 10, LeaveOneOut()
 
             # Domain-specific feature grouping
-            for gname, fsubs in fsubs_netnonnet.items():
-                X_nonet = X_imp[:, [f for fgroup in [f_nonet_dict[s] for s in fsubs if s in fgroups_nonet] for f in fgroup]]
-                X_net = X_np[:, [f for fgroup in [f_net_dict[s] for s in fsubs if s in fgroups_net] for f in fgroup]]
-                X = np.concatenate((X_nonet, X_net), axis=1)
-                for clf_name, clf in clf_dict.items():
-                    scores = []
-                    for train_idx, test_idx in cv_outer.split(X):
-                        X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
-                        if clf_name != 'decision tree':
-                            X_train = standard_scale(X_train)
-                            X_test = standard_scale(X_test)
-                        clf.fit(X_train, y_train)
-                        scores.append(clf.score(X_test, y_test))
-                    scores_dict[f'{cohort}-{drug}-{clf_name}'].append(np.mean(scores))
+            if 'manual' in methods:
+                for gname, fsubs in fsubs_netnonnet.items():
+                    scores_dict[f'{cohort}-{drug}-fgroup'].append(gname)
+                    X_nonet = X_imp[:, [f for fgroup in [f_nonet_dict[s] for s in fsubs if s in fgroups_nonet] for f in fgroup]]
+                    X_net = X_np[:, [f for fgroup in [f_net_dict[s] for s in fsubs if s in fgroups_net] for f in fgroup]]
+                    X = np.concatenate((X_nonet, X_net), axis=1)
+                    for clf_name, clf in clf_dict.items():
+                        print(f'Cohort {cohort}, {drug}: start running manual grouping {gname} for {clf_name}')
+                        if clf_name == 'LG':    clf.solver, clf.penalty = 'liblinear', 'l1'
+                        scores = []
+                        for train_idx, test_idx in cv_outer.split(X):
+                            X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
+                            if clf_name != 'DT':
+                                X_train = standard_scale(X_train)
+                                X_test = standard_scale(X_test)
+                            search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=5)
+                            search.fit(X_train, y_train)
+                            scores.append(search.score(X_test, y_test))
+                        scores_dict[f'{cohort}-{drug}-{clf_name}'].append(np.mean(scores))
 
             # various feature selection methods
-            for m_name in method_list:
+            for m_name in methods:
+                if m_name == 'manual':  continue
                 scores_dict[f'{cohort}-{drug}-fgroup'].append(m_name)
                 for clf_name, clf in clf_dict.items():
-                    print(f'Start running {m_name} for {clf_name}')
-                    if m_name == 'thresholding':    final_score = thresholding(clf, clf_name, X_all, y, cv_inner, cv_outer)
-                    if m_name == 'chi2':    final_score = chi2_filter(clf, clf_name, X_all, y, cv_inner, cv_outer)
-                    if m_name == 'pca':    final_score = pca(clf, clf_name, X_all, y, cv_inner, cv_outer)
-                    if m_name == "genetic alg":     final_score = genetic_alg(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer)
-                    if m_name == "genetic alg (mod)":   final_score = genetic_alg_mod(clf, clf_name, clf_params[clf_name], X_all, y, cv_inner, cv_outer)
+                    print(f'Cohort {cohort}, {drug}: start running {m_name} for {clf_name}')
+                    if m_name == 'thresholding':    final_score = thresholding(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer)
+                    if m_name == 'chi2':    final_score = chi2_filter(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer)
+                    if m_name == 'pca':    final_score = pca(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer)
+                    if m_name == "GA":     final_score = genetic_alg(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer)
+                    if m_name == "GAmod":   final_score = genetic_alg_mod(clf, clf_name, clf_params[clf_name], X_all, y, cv_inner, cv_outer)
                     scores_dict[f'{cohort}-{drug}-{clf_name}'].append(final_score)
 
             scores_dict[f'{cohort}-{drug}-baseline'] = [baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
-    pd.DataFrame.from_dict(scores_dict).to_csv('results/nested_CV_scores_nonnetwork+network.csv', index=False)
+    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nested_CV_scores_nonnetwork+network_{goals_code}.csv', index=False)
+
+
+if __name__ == '__main__':
+    # %% load dataset
+    datapath = 'data/original/pre-imputed/'
+
+    C1W1nonet_df = pd.read_csv(datapath + 'C1W1_nonnetwork_preimputed.csv')
+    C1pred_df = pd.read_csv(datapath + 'C1_nonnetwork_pred.csv')
+    C1W1nonet_vars = list(C1W1nonet_df.columns)
+
+    C2W1nonet_df = pd.read_csv(datapath + 'C2W1_nonnetwork_preimputed.csv')
+    C2pred_df = pd.read_csv(datapath + 'C2_nonnetwork_pred.csv')
+    C2W1nonet_vars = list(C2W1nonet_df.columns)
+
+    with open(sys.argv[4], 'r') as f:  # load dict containing lists of cohorts, drugs, and methods to be investigated
+        goals = json.load(f)
+    cohorts, drugs, methods = goals["cohorts"], goals["drugs"], goals["methods"]
+    goals_code = f"{'-'.join([str(c) for c in cohorts])}_{'-'.join([d[:4] for d in drugs])}_{'-'.join([m[:3] for m in methods])}"
+
+
+    # %% domain-specific feature groupings
+    fsubs_1, fsubs_2, fsubs_3, fsubs_4 = ['SC'], ['DM'], ['TB','AL','ID','ND','DA','OD'], ['TX','AC','CJ']
+    fsubs_5 = fsubs_1 + fsubs_2
+    fsubs_6 = fsubs_1 + fsubs_2 + fsubs_3
+    fsubs_7 = fsubs_1 + fsubs_2 + fsubs_4
+    fsubs_8 = fsubs_1 + fsubs_2 + fsubs_3 + fsubs_4
+    fsubs_nonnet = {'g1': fsubs_1, 'g2': fsubs_2, 'g3': fsubs_3, 'g4': fsubs_4, 'g5': fsubs_5, 'g6': fsubs_6, 'g7': fsubs_7, 'g8': fsubs_8}
+
+    fsubs_net = {'g9': ['NSX'], 'g10': ['NDX'], 'g11': ['NSX','NDX']}
+
+    fsubs_netnonnet = { 'g12': fsubs_nonnet['g3']+fsubs_net['g10'],
+                        'g13': fsubs_nonnet['g6']+fsubs_net['g10'],
+                        'g14': fsubs_nonnet['g8']+fsubs_net['g11']}
+
+
+    # %% classifiers considered
+    clf_dict = {
+        'LG': LogisticRegression(),
+        'DT': DecisionTreeClassifier(),
+        'SVM': SVC()
+    }
+    clf_params = {
+        'LG': {'names': ['C'], 'range': [(0.001, 1000)], 'bitwidth': 8},
+        'DT': {'names': ['max_depth','min_samples_split'], 'range': [(3, 10), (5,15)], 'bitwidth': 4},
+        'SVM': {'names': ['gamma','C'], 'range': [(0.0001, 100), (0.001, 1000)], 'bitwidth': 8}
+    }
+    clf_param_grid = {
+        'LG': dict(C=np.logspace(-3,3,num=7)),
+        'DT': dict(max_depth=range(3,11), min_samples_split=[5, 10, 15]),
+        'SVM': dict(gamma=np.logspace(-4,2,num=7), C=np.logspace(-3,3,num=7))
+    }
+    cv_inner = int(goals["cv_inner"])
+    cv_outer = LeaveOneOut() if goals["cv_outer"] == "LOO" else KFold(int(goals["cv_outer"]))
+
+
+    # %% non-network features
+    if int(sys.argv[1]):
+        run_nonnetwork()
+
+    # %% network features
+    if int(sys.argv[2]):
+        run_network()
+
+    # %% network+nonnetwork features
+    if int(sys.argv[3]):
+        run_netnonnetwork()
+        
