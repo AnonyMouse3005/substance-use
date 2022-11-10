@@ -278,7 +278,6 @@ def run_nonnetwork():
                     X = X_imp[:, [f for fgroup in [f_dict[s] for s in fsubs] for f in fgroup]]
                     for clf_name, clf in clf_dict.items():
                         print(f'Cohort {cohort}, {drug}: start running manual grouping {gname} for {clf_name}')
-                        if clf_name == 'LG':    clf.solver, clf.penalty = 'liblinear', 'l1'
                         scores = []
                         for train_idx, test_idx in cv_outer.split(X):
                             X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
@@ -368,7 +367,6 @@ def run_network():
                     X = X_np[:, [f for fgroup in [f_dict[s] for s in fsubs] for f in fgroup]]
                     for clf_name, clf in clf_dict.items():
                         print(f'Cohort {cohort}, {drug}: start running manual grouping {gname} for {clf_name}')
-                        if clf_name == 'LG':    clf.solver, clf.penalty = 'liblinear', 'l1'
                         scores = []
                         for train_idx, test_idx in cv_outer.split(X):
                             X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
@@ -502,7 +500,6 @@ def run_netnonnetwork():
                     X = np.concatenate((X_nonet, X_net), axis=1)
                     for clf_name, clf in clf_dict.items():
                         print(f'Cohort {cohort}, {drug}: start running manual grouping {gname} for {clf_name}')
-                        if clf_name == 'LG':    clf.solver, clf.penalty = 'liblinear', 'l1'
                         scores = []
                         for train_idx, test_idx in cv_outer.split(X):
                             X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
@@ -567,7 +564,7 @@ if __name__ == '__main__':
 
     # %% classifiers considered
     clf_dict = {
-        'LG': LogisticRegression(),
+        'LG': LogisticRegression(solver='saga', penalty='l1'),
         'DT': DecisionTreeClassifier(),
         'SVM': SVC(cache_size=1000)
     }
