@@ -33,7 +33,7 @@ from tqdm import tqdm
 
 from helper import *
 from genetic_selection import GeneticSelectionCV
-sys.path.insert(0, '/home/nthach17/repo/sklearn-genetic-mod')
+sys.path.insert(0, '../sklearn-genetic-mod')
 from genetic_selection_mod import GeneticSelectionCV_mod
 
 
@@ -203,7 +203,8 @@ def run_nonnetwork():
             print(f'At Cohort {cohort}, {drug} using non-network features')
 
             scores_dict[f'{cohort}-{drug}-fgroup'] = []
-            scores_dict[f'{cohort}-{drug}-LG'], scores_dict[f'{cohort}-{drug}-DT'], scores_dict[f'{cohort}-{drug}-SVM'] = [], [], []
+            for clf_name in clf_dict.keys():
+                scores_dict[f'{cohort}-{drug}-{clf_name}'] = []
 
             if cohort == 1:
                 nonet_vars, nonet_df = C1W1nonet_vars, C1W1nonet_df
@@ -304,7 +305,7 @@ def run_nonnetwork():
 
             scores_dict[f'{cohort}-{drug}-baseline'] = [baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
-    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nested_CV_scores_nonnetwork_{goals_code}.csv', index=False)
+    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nestedCV_scores_nonnetwork_{goals_code}.csv', index=False)
 
 
 def run_network():
@@ -315,7 +316,8 @@ def run_network():
             print(f'At Cohort {cohort}, {drug} using network features')
 
             scores_dict[f'{cohort}-{drug}-fgroup'] = []
-            scores_dict[f'{cohort}-{drug}-LG'], scores_dict[f'{cohort}-{drug}-DT'], scores_dict[f'{cohort}-{drug}-SVM'] = [], [], []
+            for clf_name in clf_dict.keys():
+                scores_dict[f'{cohort}-{drug}-{clf_name}'] = []
 
             # csv generated from data_net_analysis.ipynb (Cramer's V section)
             df = pd.read_csv(f"saved-vars/C{''.join(str(cohort).split('+'))}_network-processed.csv")
@@ -393,7 +395,7 @@ def run_network():
 
             scores_dict[f'{cohort}-{drug}-baseline'] = [baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
-    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nested_CV_scores_network_{goals_code}.csv', index=False)
+    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nestedCV_scores_network_{goals_code}.csv', index=False)
 
 
 def run_netnonnetwork():
@@ -404,7 +406,8 @@ def run_netnonnetwork():
             print(f'At Cohort {cohort}, {drug} using network + non-network features')
 
             scores_dict[f'{cohort}-{drug}-fgroup'] = []
-            scores_dict[f'{cohort}-{drug}-LG'], scores_dict[f'{cohort}-{drug}-DT'], scores_dict[f'{cohort}-{drug}-SVM'] = [], [], []
+            for clf_name in clf_dict.keys():
+                scores_dict[f'{cohort}-{drug}-{clf_name}'] = []
 
             net_df = pd.read_csv(f"saved-vars/C{''.join(str(cohort).split('+'))}_network-processed.csv")
             if cohort == 1:
@@ -526,10 +529,13 @@ def run_netnonnetwork():
 
             scores_dict[f'{cohort}-{drug}-baseline'] = [baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
-    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nested_CV_scores_nonnetwork+network_{goals_code}.csv', index=False)
+    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nestedCV_scores_nonnetwork+network_{goals_code}.csv', index=False)
 
 
 if __name__ == '__main__':
+
+    print(f'Number of available CPUs: {multiprocessing.cpu_count()}')
+
     # %% load dataset
     datapath = 'data/original/pre-imputed/'
 
@@ -543,8 +549,7 @@ if __name__ == '__main__':
 
     with open(sys.argv[4], 'r') as f:  # load dict containing lists of cohorts, drugs, and methods to be investigated
         goals = json.load(f)
-    cohorts, drugs, methods = goals["cohorts"], goals["drugs"], goals["methods"]
-    goals_code = f"{'-'.join([str(c) for c in cohorts])}_{'-'.join([d[:4] for d in drugs])}_{'-'.join([m[:3] for m in methods])}"
+    cohorts, drugs, methods, clf_list = goals["cohorts"], goals["drugs"], goals["methods"], goals["clf_list"]
 
 
     # %% domain-specific feature groupings
@@ -563,23 +568,31 @@ if __name__ == '__main__':
 
 
     # %% classifiers considered
-    clf_dict = {
-        'LG': LogisticRegression(solver='saga', penalty='l1'),
+    clf_choices = {
+        'LG_L1': LogisticRegression(solver='saga', penalty='l1'),
+        'LG_L2': LogisticRegression(solver='saga', penalty='l2'),
+        'LG_EN': LogisticRegression(solver='saga', penalty='elasticnet'),
         'DT': DecisionTreeClassifier(),
         'SVM': SVC(cache_size=1000)
     }
     clf_params = {
-        'LG': {'names': ['C'], 'range': [(0.001, 1000)], 'bitwidth': 8},
+        'LG_L1': {'names': ['C'], 'range': [(0.001, 1000)], 'bitwidth': 8},
+        'LG_L2': {'names': ['C'], 'range': [(0.001, 1000)], 'bitwidth': 8},
+        'LG_EN': {'names': ['C'], 'range': [(0.001, 1000)], 'bitwidth': 8},
         'DT': {'names': ['max_depth','min_samples_split'], 'range': [(3, 10), (5,15)], 'bitwidth': 4},
         'SVM': {'names': ['gamma','C'], 'range': [(0.0001, 100), (0.001, 1000)], 'bitwidth': 8}
     }
     clf_param_grid = {
-        'LG': dict(C=np.logspace(-3,3,num=7)),
+        'LG_L1': dict(C=np.logspace(-3,3,num=7)),
+        'LG_L2': dict(C=np.logspace(-3,3,num=7)),
+        'LG_EN': dict(C=np.logspace(-3,3,num=7)),
         'DT': dict(max_depth=range(3,11), min_samples_split=[5, 10, 15]),
         'SVM': dict(gamma=np.logspace(-4,2,num=7), C=np.logspace(-3,3,num=7))
     }
+    clf_dict = {clf_name: clf for clf_name, clf in clf_choices.items() if clf_name in clf_list}
     cv_inner = int(goals["cv_inner"])
     cv_outer = LeaveOneOut() if goals["cv_outer"] == "LOO" else KFold(int(goals["cv_outer"]))
+    goals_code = f"{'-'.join([str(c) for c in cohorts])}_{'-'.join([d[:4] for d in drugs])}_{'-'.join([m[:3] for m in methods])}_{'-'.join([clf_name for clf_name in clf_dict.keys()])}"
 
 
     # %% non-network features
