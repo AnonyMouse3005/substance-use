@@ -72,7 +72,7 @@ def genetic_alg_mod(clf, clf_name, hparams, X_raw, y, cv=10, cv_outer=LeaveOneOu
         best_params = model.best_params_
         if hparams:
             for k, v in best_params.items():
-                if k in ['max_depth']:      v = int(round(v, 0))
+                if k in ['max_depth', 'min_samples_split']:      v = int(round(v, 0))
                 setattr(clf, k, v)
 
         results.append(clf.fit(X_train_new, y_train).score(X_test_new, y_test))
@@ -280,10 +280,7 @@ def run_nonnetwork():
                         print(f'Cohort {cohort}, {drug}: start running manual grouping {gname} for {clf_name}')
                         if clf_name == 'LG':    clf.solver, clf.penalty = 'liblinear', 'l1'
                         scores = []
-                        i = 1
                         for train_idx, test_idx in cv_outer.split(X):
-                            print(f'fold {i}')
-                            i+=1
                             X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
                             if clf_name != 'DT':
                                 X_train = standard_scale(X_train)
@@ -572,7 +569,7 @@ if __name__ == '__main__':
     clf_dict = {
         'LG': LogisticRegression(),
         'DT': DecisionTreeClassifier(),
-        'SVM': SVC()
+        'SVM': SVC(cache_size=1000)
     }
     clf_params = {
         'LG': {'names': ['C'], 'range': [(0.001, 1000)], 'bitwidth': 8},

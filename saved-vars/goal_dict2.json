@@ -1,6 +1,6 @@
 {
     "cohorts": ["1+2"],
-    "drugs": ["marijuana"],
+    "drugs": ["meth"],
     "methods": ["manual", "pca", "chi2", "thresholding"],
     "cv_inner": 10,
     "cv_outer": "LOO"
