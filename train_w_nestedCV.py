@@ -249,7 +249,7 @@ def run_nonnetwork():
             Xenc_ordinal_df = X_ordinal_df.astype('str').apply(LabelEncoder().fit_transform)
             Xenc_ordinal_df = Xenc_ordinal_df.where(~X_ordinal_df.isna(), X_ordinal_df)  # Do not encode the NaNs
 
-            nominal_cols =[]
+            nominal_cols = []
             for v in nominal_vars:
                 nominal_cols.append(pd.get_dummies(X_nominal_df[v], prefix=v))
             Xenc_nominal_df = pd.concat(nominal_cols, axis=1)
@@ -454,7 +454,7 @@ def run_netnonnetwork():
             Xenc_ordinal_df = X_ordinal_df.astype('str').apply(LabelEncoder().fit_transform)
             Xenc_ordinal_df = Xenc_ordinal_df.where(~X_ordinal_df.isna(), X_ordinal_df)  # Do not encode the NaNs
 
-            nominal_cols =[]
+            nominal_cols = []
             for v in nominal_vars:
                 nominal_cols.append(pd.get_dummies(X_nominal_df[v], prefix=v))
             Xenc_nominal_df = pd.concat(nominal_cols, axis=1)
