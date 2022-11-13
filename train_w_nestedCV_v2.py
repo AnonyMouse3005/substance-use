@@ -16,9 +16,10 @@ from sklearn.datasets import make_multilabel_classification
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.exceptions import ConvergenceWarning
+from sklearn.experimental import enable_iterative_imputer
 from sklearn.feature_selection import (SelectFromModel, SelectPercentile, chi2,
                                        mutual_info_classif)
-from sklearn.impute import SimpleImputer
+from sklearn.impute import IterativeImputer, SimpleImputer
 from sklearn.inspection import permutation_importance
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 from sklearn.metrics import RocCurveDisplay
@@ -120,6 +121,29 @@ def case_var_delete(cohort, drug, thresh=0.9):  # delete case or variable if too
     return X_drop_df, y[~np.isnan(y)]
 
 
+def missforest(cohort, drug):
+    X_df, y = load_and_impute(cohort, drug, encode=False, impute=False, predict=True)
+    nominal_vars = ['DM8','DM10','DM12','DM13']
+    X_ordinal_df = X_df.drop(nominal_vars, axis=1)
+    X_nominal_df = X_df[nominal_vars]
+    Xenc_ordinal_df = X_ordinal_df.astype('str').apply(LabelEncoder().fit_transform)
+    Xenc_ordinal_df = Xenc_ordinal_df.where(~X_ordinal_df.isna(), X_ordinal_df)  # Do not encode the NaNs
+    Xenc_df = pd.concat([Xenc_ordinal_df, X_nominal_df], axis=1)
+    imp = IterativeImputer(estimator=RandomForestClassifier(), 
+                    initial_strategy='most_frequent',
+                    max_iter=10, random_state=0)
+    X = imp.fit_transform(Xenc_df)
+    X_nominal_df = pd.DataFrame(X[:, -len(nominal_vars):], columns=nominal_vars)
+    nominal_cols = []
+    for v in nominal_vars:
+        nominal_cols.append(pd.get_dummies(X_nominal_df[v], prefix=v))
+    Xenc_nominal_df = pd.concat(nominal_cols, axis=1)
+    Xenc_df = pd.concat([Xenc_ordinal_df, Xenc_nominal_df], axis=1)
+    X = np.concatenate((X[:, :-len(nominal_vars)], Xenc_nominal_df.to_numpy()), axis=1)
+    print(f'X shape: {X.shape}, Xenc_df shape: {Xenc_df.shape}')
+    return X, y, Xenc_df
+
+
 # %% which feature type to use for training?
 def run_nonnetwork():
     scores_dict = {}
@@ -128,27 +152,29 @@ def run_nonnetwork():
 
             print(f'At Cohort {cohort}, {drug} using non-network features')
 
-            X_drop_df, y = case_var_delete(cohort=cohort, drug=drug)  # df with dropped rows and columns if too much missingness
-            print(X_drop_df.shape, len(y))
-            nominal_vars = [v for v in X_drop_df.columns if v in ['DM8','DM10','DM12','DM13']]
+            # X_drop_df, y = case_var_delete(cohort=cohort, drug=drug)  # df with dropped rows and columns if too much missingness
+            # print(X_drop_df.shape, len(y))
+            # nominal_vars = [v for v in X_drop_df.columns if v in ['DM8','DM10','DM12','DM13']]
         
-            X_ordinal_df = X_drop_df.drop(nominal_vars, axis=1)
-            X_nominal_df = X_drop_df[nominal_vars]
+            # X_ordinal_df = X_drop_df.drop(nominal_vars, axis=1)
+            # X_nominal_df = X_drop_df[nominal_vars]
         
-            # Encode
-            Xenc_ordinal_df = X_ordinal_df.astype('str').apply(LabelEncoder().fit_transform)
-            Xenc_ordinal_df = Xenc_ordinal_df.where(~X_ordinal_df.isna(), X_ordinal_df)  # Do not encode the NaNs
+            # # Encode
+            # Xenc_ordinal_df = X_ordinal_df.astype('str').apply(LabelEncoder().fit_transform)
+            # Xenc_ordinal_df = Xenc_ordinal_df.where(~X_ordinal_df.isna(), X_ordinal_df)  # Do not encode the NaNs
         
-            nominal_cols = []
-            for v in nominal_vars:
-                nominal_cols.append(pd.get_dummies(X_nominal_df[v], prefix=v))
-            Xenc_nominal_df = pd.concat(nominal_cols, axis=1)
-            Xenc_df = pd.concat([Xenc_ordinal_df, Xenc_nominal_df], axis=1)
+            # nominal_cols = []
+            # for v in nominal_vars:
+            #     nominal_cols.append(pd.get_dummies(X_nominal_df[v], prefix=v))
+            # Xenc_nominal_df = pd.concat(nominal_cols, axis=1)
+            # Xenc_df = pd.concat([Xenc_ordinal_df, Xenc_nominal_df], axis=1)
 
-            # Impute
-            imp = SimpleImputer(missing_values=np.nan, strategy='most_frequent')
-            X_imp = imp.fit_transform(Xenc_df)
-            print(Xenc_df.shape[1])
+            # # Impute
+            # imp = SimpleImputer(missing_values=np.nan, strategy='most_frequent')
+            # X_imp = imp.fit_transform(Xenc_df)
+            # print(Xenc_df.shape[1])
+
+            X_imp, y, Xenc_df = missforest(cohort, drug)
 
             scores_dict[f'{cohort}-{drug}-fgroup'] = []
             for clf_name in clf_dict.keys():
@@ -468,7 +494,7 @@ if __name__ == '__main__':
     clf_choices = {
         'LG_L1': LogisticRegression(solver='saga', penalty='l1'),
         'LG_L2': LogisticRegression(solver='saga', penalty='l2'),
-        'LG_EN': LogisticRegression(solver='saga', penalty='elasticnet'),
+        'LG_EN': LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5),
         'DT': DecisionTreeClassifier(),
         'SVM': SVC(cache_size=1000)
     }
@@ -494,7 +520,8 @@ if __name__ == '__main__':
 
     # %% non-network features
     if int(sys.argv[1]):
-        run_nonnetwork()
+        # run_nonnetwork()
+        missforest(1, 'marijuana')
 
     # %% network features
     if int(sys.argv[2]):

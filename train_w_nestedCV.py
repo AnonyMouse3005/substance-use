@@ -571,7 +571,7 @@ if __name__ == '__main__':
     clf_choices = {
         'LG_L1': LogisticRegression(solver='saga', penalty='l1'),
         'LG_L2': LogisticRegression(solver='saga', penalty='l2'),
-        'LG_EN': LogisticRegression(solver='saga', penalty='elasticnet'),
+        'LG_EN': LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5),
         'DT': DecisionTreeClassifier(),
         'SVM': SVC(cache_size=1000)
     }
