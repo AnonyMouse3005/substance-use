@@ -1,11 +1,22 @@
 from itertools import chain, combinations
-import numpy as np
-from sklearn.model_selection import LeaveOneOut, learning_curve
-from sklearn.preprocessing import StandardScaler, Normalizer
 import json
-import scipy.stats as ss
+import sys
+
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+import seaborn as sns
+from sklearn.decomposition import PCA
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.feature_selection import (SelectFromModel, SelectPercentile, chi2)
+from sklearn.model_selection import *
+from sklearn.preprocessing import StandardScaler
+from sklearn.utils._testing import ignore_warnings
+
+from helper import *
+from genetic_selection import GeneticSelectionCV
+sys.path.insert(0, '../sklearn-genetic-mod')
+from genetic_selection_mod import GeneticSelectionCV_mod
 
 
 def powerset(iterable):
@@ -345,3 +356,153 @@ def plot_learning_curve_v2(
     fig.tight_layout()
 
     return plt
+
+
+@ignore_warnings(category=ConvergenceWarning)
+def genetic_alg_mod(clf, clf_name, hparams, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
+
+    results = []
+    print(f'classifier: {clf_name}')
+    X = standard_scale(X_raw) if clf_name != 'DT' else X_raw
+    i = 0
+    for train_idx, test_idx in cv_outer.split(X):
+        i += 1
+        n_splits = cv_outer.n_splits if hasattr(cv_outer, 'n_splits') else X.shape[0]
+        print(f'At fold {i}/{n_splits} (outer CV)')
+        X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
+        model = GeneticSelectionCV_mod(
+            clf, cv=cv, verbose=0,
+            scoring="accuracy", max_features=None,
+            n_population=300, crossover_proba=0.5,
+            mutation_proba=0.2, n_generations=40,
+            crossover_independent_proba=0.1,
+            mutation_independent_proba=0.05,
+            tournament_size=3, n_gen_no_change=10,
+            hparams=hparams,
+            caching=False, n_jobs=10)
+        model = model.fit(X_train, y_train)
+
+        X_train_new, X_test_new = X_train[:, model.support_], X_test[:, model.support_]
+        best_params = model.best_params_
+        if hparams:
+            for k, v in best_params.items():
+                if k in ['max_depth', 'min_samples_split']:      v = int(round(v, 0))
+                setattr(clf, k, v)
+
+        results.append(clf.fit(X_train_new, y_train).score(X_test_new, y_test))
+    
+    return np.mean(results)
+
+
+@ignore_warnings(category=ConvergenceWarning)
+def genetic_alg(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
+
+    results = []
+    print(f'classifier: {clf_name}')
+    X = standard_scale(X_raw) if clf_name != 'DT' else X_raw
+    i = 0
+    for train_idx, test_idx in cv_outer.split(X):
+        i += 1
+        n_splits = cv_outer.n_splits if hasattr(cv_outer, 'n_splits') else X.shape[0]
+        print(f'At fold {i}/{n_splits} (outer CV)')
+        X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
+        model = GeneticSelectionCV(
+            clf, cv=cv, verbose=0,
+            scoring="accuracy", max_features=None,
+            n_population=300, crossover_proba=0.5,
+            mutation_proba=0.2, n_generations=40,
+            crossover_independent_proba=0.1,
+            mutation_independent_proba=0.05,
+            tournament_size=3, n_gen_no_change=10,
+            caching=False, n_jobs=10)
+        model = model.fit(X_train, y_train)
+
+        X_train_new, X_test_new = X_train[:, model.support_], X_test[:, model.support_]
+        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True)
+        search.fit(X_train_new, y_train)
+
+        results.append(search.score(X_test_new, y_test))
+    
+    return np.mean(results)
+
+
+@ignore_warnings(category=ConvergenceWarning)
+def pca(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
+
+    results = []
+    n_components = np.linspace(2, 20, 10, dtype=np.int32)
+    X = standard_scale(X_raw)
+    for train_idx, test_idx in cv_outer.split(X):
+
+        X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
+        cv_scores = {}
+        for j, n_pc in enumerate(n_components):
+            model = PCA(n_components=n_pc)
+            X_train_new = model.fit_transform(X_train)
+            X_test_new = model.transform(X_test)
+            cv_scores[j] = {'score': np.mean(cross_val_score(clf, X_train_new, y_train, scoring='accuracy', cv=cv)),
+                            'X_train_new': X_train_new, 'X_test_new': X_test_new}
+
+        best_pc_idx = np.argmax([i['score'] for i in cv_scores.values()])
+        X_train_best, X_test_best = cv_scores[best_pc_idx]['X_train_new'], cv_scores[best_pc_idx]['X_test_new']
+        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True)
+        search.fit(X_train_best, y_train)
+
+        results.append(search.score(X_test_best, y_test))
+
+    return np.mean(results)
+
+
+@ignore_warnings(category=ConvergenceWarning)
+def chi2_filter(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
+
+    results = []
+    percentiles = [3, 6, 10, 15, 20, 30, 40]
+    X = standard_scale(X_raw) if clf_name != 'DT' else X_raw
+    for train_idx, test_idx in cv_outer.split(X):
+
+        X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
+        cv_scores = {}
+        for j, pc in enumerate(percentiles):
+            model = SelectPercentile(chi2, percentile=pc)
+            X_train_new = model.fit_transform(X_train, y_train)
+            X_test_new = model.transform(X_test)
+            cv_scores[j] = {'score': np.mean(cross_val_score(clf, X_train_new, y_train, scoring='accuracy', cv=cv)),
+                            'X_train_new': X_train_new, 'X_test_new': X_test_new}
+
+        best_pc_idx = np.argmax([i['score'] for i in cv_scores.values()])
+        X_train_best, X_test_best = cv_scores[best_pc_idx]['X_train_new'], cv_scores[best_pc_idx]['X_test_new']
+        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True)
+        search.fit(X_train_best, y_train)
+
+        results.append(search.score(X_test_best, y_test))
+
+    return np.mean(results)
+
+
+@ignore_warnings(category=ConvergenceWarning)
+def thresholding(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
+
+    results = []
+    thresholds = [f"{scale}*mean" for scale in [0.1, 0.5, 0.75, 1, 1.25, 1.5, 2]]
+    X = standard_scale(X_raw) if clf_name != 'DT' else X_raw
+    for train_idx, test_idx in cv_outer.split(X):
+        
+        X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
+        if clf_name == 'SVM':       clf.kernel = 'linear'  # only linear kernel allows SVM to have coef_
+        importances = 'auto'
+        cv_scores = {}
+        for j, th in enumerate(thresholds):
+            model = SelectFromModel(clf.fit(X_train, y_train), prefit=True, importance_getter=importances, threshold=th)
+            X_train_new, X_test_new = model.transform(X_train), model.transform(X_test)
+            cv_scores[j] = {'score': np.mean(cross_val_score(clf, X_train_new, y_train, scoring='accuracy', cv=cv)),
+                            'X_train_new': X_train_new, 'X_test_new': X_test_new}
+
+        best_pc_idx = np.argmax([i['score'] for i in cv_scores.values()])
+        X_train_best, X_test_best = cv_scores[best_pc_idx]['X_train_new'], cv_scores[best_pc_idx]['X_test_new']
+        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True)
+        search.fit(X_train_best, y_train)
+
+        results.append(search.score(X_test_best, y_test))
+
+    return np.mean(results)

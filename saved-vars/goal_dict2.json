@@ -1,0 +1,8 @@
+{
+    "cohorts": [1],
+    "drugs": ["meth"],
+    "methods": ["GA"],
+    "cv_inner": 10,
+    "cv_outer": "LOO",
+    "clf_list": ["LG_L1"]
+}

@@ -36,8 +36,12 @@ from helper import *
 
 
 # %%
-def load_and_impute(cohort, encode=True, impute=True, drug='marijuana'):
-
+def load_and_impute(cohort, drug, predict=False, impute=True, encode=True):
+    '''
+    predict:    whether to drop rows where prediction var (y) is missing
+    impute:     whether to encode and impute everything (return a np array X)
+    encode:     whether to label encode and one-hot encode df
+    '''
     if cohort == 1:
         nonet_vars, nonet_df = C1W1nonet_vars, C1W1nonet_df
         pred_df = C1pred_df
@@ -53,8 +57,8 @@ def load_and_impute(cohort, encode=True, impute=True, drug='marijuana'):
         C2pred_keys = list(C2pred_df.columns)
         for i, c in enumerate(list(C1pred_df.columns)):  # map column names of C2pred_df to C1pred_df (since C1W2 has different varnames)
             colname_map[C2pred_keys[i]] = c
-
         pred_df = pd.concat([C1pred_df, C2pred_df.rename(columns=colname_map)], ignore_index=True)
+        pred_var = zip(pred_df['ND1'], pred_df['Q68']) if drug == 'marijuana' else zip(pred_df['ND7'], pred_df['Q75'])
         
     df = impute_MARs(nonet_vars, nonet_df)
     discarded_vars = ['PID','PID2','AL6B','ID13','ID14_4','ID14_5','ID14_6','ID14_7','ND13','ND15_4','ND15_5','ND15_6','ND15_7',
@@ -70,10 +74,10 @@ def load_and_impute(cohort, encode=True, impute=True, drug='marijuana'):
         else:   dep_var_full.append(np.nan)
 
     df = pd.concat([df, pd.DataFrame({'pred': dep_var_full})], axis=1)  # drop rows where prediction var is missing
-    y = np.array(dep_var_full)
-    y = y[~np.isnan(y)]
-
-    X_df = df.drop(discarded_vars, axis=1)
+    if predict:
+        X_df = df[df['pred'].notna()].drop(discarded_vars+['pred'], axis=1)
+        X_df.reset_index(drop=True, inplace=True)
+    else:   X_df = df.drop(discarded_vars+['pred'], axis=1)
     X_ordinal_df = X_df.drop(nominal_vars, axis=1)
     X_nominal_df = X_df[nominal_vars]
 
@@ -88,14 +92,32 @@ def load_and_impute(cohort, encode=True, impute=True, drug='marijuana'):
 
     Xenc_df = pd.concat([Xenc_ordinal_df, Xenc_nominal_df], axis=1)
 
+    y = np.array(dep_var_full)
+    y = y[~np.isnan(y)]
+
     if impute:
-        # Impute
+        # Mean impute
         imp = SimpleImputer(missing_values=np.nan, strategy='most_frequent')
         X_imp = imp.fit_transform(Xenc_df)
         return X_imp, y
     else:
         if encode:      return Xenc_df, y
-        else:           return X_df, y
+        else:
+            if predict: return X_df, y
+            else:       return X_df, np.array(dep_var_full)
+
+
+def case_var_delete(cohort, drug, thresh=0.9):  # delete case or variable if too many missing values
+    X_df, dep_var_full = load_and_impute(cohort, drug, encode=False, impute=False, predict=False)    # y_nan = np.argwhere(np.isnan(dep_var_full)).flatten()
+    X_droprow_df = X_df.dropna(axis=0, thresh=len(X_df.columns)*thresh)  # drop row (partcipant) if missing 10% out of all features
+    y = dep_var_full[X_droprow_df.index]
+    X_droprow_df.reset_index(drop=True, inplace=True)
+    X_drop_df = X_droprow_df.dropna(axis=1, thresh=len(X_droprow_df)*thresh)  # drop column (variable) if missing 10% out of all participants
+    print(X_drop_df.shape, len(y), y)
+    if np.isnan(y).any():
+        print('yes', len(np.argwhere(np.isnan(y)).flatten()))
+        X_drop_df = X_drop_df.drop(np.argwhere(np.isnan(y)).flatten())
+    return X_drop_df, y[~np.isnan(y)]
 
 
 def plot_missingness(cohort, save=False):
@@ -146,47 +168,11 @@ def plot_distribution(save=False):
             plt.savefig(f'plots/analysis/visualization/distribution/{v_name}_distribution.pdf', bbox_inches='tight', facecolor='white')
 
 
-def case_var_delete(cohort, thresh=0.9, drug='marijuana'):  # delete case or variable if too many missing values
-    X_df, y = load_and_impute(cohort, encode=False, impute=False, drug=drug)
-    X_droprow_df = X_df.dropna(axis=0, thresh=len(X_df.columns)*thresh)  # drop row (partcipant) if missing 10% out of all features
-    X_drop_df = X_droprow_df.dropna(axis=1, thresh=len(X_df)*thresh)  # drop column (variable) if missing 10% out of all participants
-    return X_drop_df, y
-
-
-@ignore_warnings(category=ConvergenceWarning)
-def genetic_alg(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
-
-    results = []
-    print(f'classifier: {clf_name}')
-    X = standard_scale(X_raw) if clf_name != 'DT' else X_raw
-    i = 0
-    for train_idx, test_idx in cv_outer.split(X):
-        i += 1
-        n_splits = cv_outer.n_splits if hasattr(cv_outer, 'n_splits') else X.shape[0]
-        print(f'At fold {i}/{n_splits} (outer CV)')
-        X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
-        model = GeneticSelectionCV(
-            clf, cv=cv, verbose=0,
-            scoring="accuracy", max_features=None,
-            n_population=300, crossover_proba=0.5,
-            mutation_proba=0.2, n_generations=40,
-            crossover_independent_proba=0.1,
-            mutation_independent_proba=0.05,
-            tournament_size=3, n_gen_no_change=10,
-            caching=False, n_jobs=10)
-        model = model.fit(X_train, y_train)
-
-        X_train_new, X_test_new = X_train[:, model.support_], X_test[:, model.support_]
-        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True)
-        search.fit(X_train_new, y_train)
-
-        results.append(search.score(X_test_new, y_test))
-    
-    return np.mean(results)
-
-
 # %% main
 if __name__ == '__main__':
+
+    cohorts = [2]
+    drugs = ['marijuana','meth']
 
     datapath = 'data/original/pre-imputed/'
     C1W1nonet_df = pd.read_csv(datapath + 'C1W1_nonnetwork_preimputed.csv')
@@ -196,68 +182,35 @@ if __name__ == '__main__':
     C2pred_df = pd.read_csv(datapath + 'C2_nonnetwork_pred.csv')
     C2W1nonet_vars = list(C2W1nonet_df.columns)
 
-    # %% plot missingness of (non-network) data
-    cohorts = [1, 2, "1+2"]
+    # # %% plot missingness of (non-network) data
+    # for cohort in cohorts:
+    #     plot_missingness(cohort)
+
+
+    # # %% plot distribution of C1 vs C2 (non-network data)
+    # plot_distribution()
+
+
+    # %% missingness after rows and columns are dropped from case/var deletion
     for cohort in cohorts:
-        plot_missingness(cohort)
+        for drug in drugs:
 
+            datapath = 'data/original/pre-imputed/'
+            C1W1nonet_df = pd.read_csv(datapath + 'C1W1_nonnetwork_preimputed.csv')
+            C1pred_df = pd.read_csv(datapath + 'C1_nonnetwork_pred.csv')
+            C1W1nonet_vars = list(C1W1nonet_df.columns)
+            C2W1nonet_df = pd.read_csv(datapath + 'C2W1_nonnetwork_preimputed.csv')
+            C2pred_df = pd.read_csv(datapath + 'C2_nonnetwork_pred.csv')
+            C2W1nonet_vars = list(C2W1nonet_df.columns)
 
-    # %% plot distribution of C1 vs C2 (non-network data)
-    plot_distribution()
+            X_drop_df, y = case_var_delete(cohort, drug)
+            print(X_drop_df.shape, len(y))
+            plt.subplots(figsize=(50,15), tight_layout=True)
+            ax = sns.heatmap(X_drop_df.isna(), cbar=False)
+            plt.xlabel('Non-network variable', fontsize=30)
+            plt.ylabel('Participant', fontsize=30)
+            plt.xticks(rotation=90)
+            plt.show()
 
-
-    # %% case and variable deletion
-    X_drop_df, y = case_var_delete(cohort=1, drug='marijuana')
-    nominal_vars = [v for v in X_drop_df.columns if v in ['DM8','DM10','DM12','DM13']]
-
-    X_ordinal_df = X_drop_df.drop(nominal_vars, axis=1)
-    X_nominal_df = X_drop_df[nominal_vars]
-
-    # Encode
-    Xenc_ordinal_df = X_ordinal_df.astype('str').apply(LabelEncoder().fit_transform)
-    Xenc_ordinal_df = Xenc_ordinal_df.where(~X_ordinal_df.isna(), X_ordinal_df)  # Do not encode the NaNs
-
-    nominal_cols = []
-    for v in nominal_vars:
-        nominal_cols.append(pd.get_dummies(X_nominal_df[v], prefix=v))
-    Xenc_nominal_df = pd.concat(nominal_cols, axis=1)
-
-    Xenc_df = pd.concat([Xenc_ordinal_df, Xenc_nominal_df], axis=1)
-    imp = SimpleImputer(missing_values=np.nan, strategy='most_frequent')
-    X = imp.fit_transform(Xenc_df)
-
-    clf_dict = {
-        # 'LG_L1': LogisticRegression(solver='saga', penalty='l1'),
-        # 'LG_L2': LogisticRegression(solver='saga', penalty='l2'),
-        # 'LG_EN': LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5),
-        'DT': DecisionTreeClassifier(),
-        'SVM': SVC(cache_size=1000)
-    }
-    clf_param_grid = {
-        'LG_L1': dict(C=np.logspace(-3,3,num=7)),
-        'LG_L2': dict(C=np.logspace(-3,3,num=7)),
-        'LG_EN': dict(C=np.logspace(-3,3,num=7)),
-        'DT': dict(max_depth=range(3,11), min_samples_split=[5, 10, 15]),
-        'SVM': dict(gamma=np.logspace(-4,2,num=7), C=np.logspace(-3,3,num=7))
-    }
-    cv_inner, cv_outer = 10, LeaveOneOut()
-
-    # results = {}
-    # for clf_name, clf in clf_dict.items():
-    #     scores = []
-    #     for train_idx, test_idx in cv_outer.split(X):
-    #         X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
-    #         if clf_name != 'DT':
-    #             X_train = standard_scale(X_train)
-    #             X_test = standard_scale(X_test)
-    #         search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=5)
-    #         search.fit(X_train, y_train)
-    #         scores.append(search.score(X_test, y_test))
-    #     results[clf_name] = np.mean(scores)
-    # results['X_shape'] = X.shape
-
-    results = {}
-    for clf_name, clf in clf_dict.items():
-        results[clf_name] = genetic_alg(clf, clf_name, clf_param_grid[clf_name], X, y, cv_inner, cv_outer)
 
 # %%
