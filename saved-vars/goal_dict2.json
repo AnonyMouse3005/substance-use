@@ -1,8 +1,8 @@
 {
     "cohorts": [2],
     "drugs": ["meth"],
-    "methods": ["chi2"],
+    "methods": ["manual", "pca", "chi2", "thresholding"],
     "cv_inner": 10,
     "cv_outer": "LOO",
-    "clf_list": ["LG_L1"]
+    "clf_list": ["LG_L1", "LG_L2", "LG_EN", "DT", "SVM"]
 }

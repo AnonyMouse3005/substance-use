@@ -1,0 +1,10 @@
+ND1 (mari), ND7 (meth)
+Have you ever used (substance)?
+During the last 30 days, on how many days did you use (substance)?
+	The number of days for the three substance categories was summed to produce a score from 0 to 90 (“drug days score”)
+DM1 age
+DM9 education (<high school, high school only, >high school)
+DM8 marital status
+DM23 Ability to afford all basic necessities (yes/no)
+SC5, SC6, SC9 emotional support
+AC childhood family environment

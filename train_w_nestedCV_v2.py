@@ -36,12 +36,8 @@ from helper import *
 
 
 # %% load data and impute
-def load_and_impute(cohort, drug, predict=False, impute=True, encode=True):
-    '''
-    predict:    whether to drop rows where prediction var (y) is missing
-    impute:     whether to encode and impute everything (return a np array X)
-    encode:     whether to label encode and one-hot encode df
-    '''
+def load_data(cohort, drug):
+
     if cohort == 1:
         nonet_vars, nonet_df = C1W1nonet_vars, C1W1nonet_df
         pred_df = C1pred_df
@@ -63,7 +59,6 @@ def load_and_impute(cohort, drug, predict=False, impute=True, encode=True):
     df = impute_MARs(nonet_vars, nonet_df)
     discarded_vars = ['PID','PID2','AL6B','ID13','ID14_4','ID14_5','ID14_6','ID14_7','ND13','ND15_4','ND15_5','ND15_6','ND15_7',
                 'DA5','DA6','DA7','DA7a','DA7b','DA7c','DA7d','DA8','DA8a','DA8b','DA8c','DA8d'] + [v for v in list(df.columns) if 'TEXT' in v]
-    nominal_vars = ['DM8','DM10','DM12','DM13']
 
     dep_var_full = []
     for a, b in pred_var:
@@ -77,13 +72,22 @@ def load_and_impute(cohort, drug, predict=False, impute=True, encode=True):
     y = np.array(dep_var_full)
     y = y[~np.isnan(y)]
 
-    if predict:
-        X_df = df[df['pred'].notna()].drop(discarded_vars+['pred'], axis=1)
-        X_df.reset_index(drop=True, inplace=True)
-    else:   X_df = df.drop(discarded_vars+['pred'], axis=1)
-    X_ordinal_df = X_df.drop(nominal_vars, axis=1)
-    X_nominal_df = X_df[nominal_vars]
+    X_df = df[df['pred'].notna()].drop(discarded_vars+['pred'], axis=1)
+    X_df.reset_index(drop=True, inplace=True)
 
+    return X_df, y
+
+
+def case_var_delete(cohort, drug, thresh=0.9):  # delete case and/or variable if too many missing values
+
+    X_df, y = load_data(cohort, drug)
+    X_dropcol_df = X_df.dropna(axis=1, thresh=len(X_df)*thresh)  # drop column (variable) if missing 10% out of all participants
+    X_drop_df = X_df.dropna(axis=0, thresh=len(X_dropcol_df.columns)*thresh)  # drop row (partcipant) if missing 10% out of all features
+    if len(X_drop_df) < len(X_df):  y = y[X_drop_df.index]
+
+    nominal_vars = [v for v in X_drop_df.columns if v in ['DM8','DM10','DM12','DM13']]
+    X_ordinal_df = X_drop_df.drop(nominal_vars, axis=1)
+    X_nominal_df = X_drop_df[nominal_vars]
     # Encode
     Xenc_ordinal_df = X_ordinal_df.astype('str').apply(LabelEncoder().fit_transform)
     Xenc_ordinal_df = Xenc_ordinal_df.where(~X_ordinal_df.isna(), X_ordinal_df)  # Do not encode the NaNs
@@ -92,33 +96,16 @@ def load_and_impute(cohort, drug, predict=False, impute=True, encode=True):
     for v in nominal_vars:
         nominal_cols.append(pd.get_dummies(X_nominal_df[v], prefix=v))
     Xenc_nominal_df = pd.concat(nominal_cols, axis=1)
-
     Xenc_df = pd.concat([Xenc_ordinal_df, Xenc_nominal_df], axis=1)
+    # Impute
+    imp = SimpleImputer(missing_values=np.nan, strategy='most_frequent')
+    X_imp = imp.fit_transform(Xenc_df)
 
-    if impute:
-        # Impute
-        imp = SimpleImputer(missing_values=np.nan, strategy='most_frequent')
-        X_imp = imp.fit_transform(Xenc_df)
-        return X_imp, y
-    else:
-        if encode:      return Xenc_df, y
-        else:
-            if predict: return X_df, y
-            else:       return X_df, np.array(dep_var_full)
-
-
-def case_var_delete(cohort, drug, thresh=0.9):  # delete case and/or variable if too many missing values
-
-    X_df, y = load_and_impute(cohort, drug, encode=False, impute=False, predict=True)
-    X_dropcol_df = X_df.dropna(axis=1, thresh=len(X_df)*thresh)  # drop column (variable) if missing 10% out of all participants
-    X_drop_df = X_df.dropna(axis=0, thresh=len(X_dropcol_df.columns)*thresh)  # drop row (partcipant) if missing 10% out of all features
-    if len(X_drop_df) < len(X_df):  y = y[X_drop_df.index]
-    print(X_df.shape, X_drop_df.shape, len(y))
-    return X_drop_df, y
+    return X_imp, y, Xenc_df
 
 
 def missforest(cohort, drug):
-    X_df, y = load_and_impute(cohort, drug, encode=False, impute=False, predict=True)
+    X_df, y = load_data(cohort, drug)
     nominal_vars = ['DM8','DM10','DM12','DM13']
     X_ordinal_df = X_df.drop(nominal_vars, axis=1)
     X_nominal_df = X_df[nominal_vars]
@@ -136,7 +123,6 @@ def missforest(cohort, drug):
     Xenc_nominal_df = pd.concat(nominal_cols, axis=1)
     Xenc_df = pd.concat([Xenc_ordinal_df, Xenc_nominal_df], axis=1)
     X = np.concatenate((X[:, :-len(nominal_vars)], Xenc_nominal_df.to_numpy()), axis=1)
-    print(f'X shape: {X.shape}, Xenc_df shape: {Xenc_df.shape}')
     return X, y, Xenc_df
 
 
@@ -149,28 +135,9 @@ def run_nonnetwork():
             print(f'At Cohort {cohort}, {drug} using non-network features')
 
             if impute_method == 'case-var-del':
-                X_drop_df, y = case_var_delete(cohort, drug)  # df with dropped rows and columns if too much missingness
-                print(X_drop_df.shape, len(y))
-                nominal_vars = [v for v in X_drop_df.columns if v in ['DM8','DM10','DM12','DM13']]
-            
-                X_ordinal_df = X_drop_df.drop(nominal_vars, axis=1)
-                X_nominal_df = X_drop_df[nominal_vars]
-            
-                # Encode
-                Xenc_ordinal_df = X_ordinal_df.astype('str').apply(LabelEncoder().fit_transform)
-                Xenc_ordinal_df = Xenc_ordinal_df.where(~X_ordinal_df.isna(), X_ordinal_df)  # Do not encode the NaNs
-            
-                nominal_cols = []
-                for v in nominal_vars:
-                    nominal_cols.append(pd.get_dummies(X_nominal_df[v], prefix=v))
-                Xenc_nominal_df = pd.concat(nominal_cols, axis=1)
-                Xenc_df = pd.concat([Xenc_ordinal_df, Xenc_nominal_df], axis=1)
-
-                # Impute
-                imp = SimpleImputer(missing_values=np.nan, strategy='most_frequent')
-                X_imp = imp.fit_transform(Xenc_df)
-
-            elif impute_method == 'missforest':     X_imp, y, Xenc_df = missforest(cohort, drug)
+                X_imp, y, Xenc_df = case_var_delete(cohort, drug)  # df with dropped rows and columns if too much missingness
+            elif impute_method == 'missforest':
+                X_imp, y, Xenc_df = missforest(cohort, drug)
 
             scores_dict[f'{cohort}-{drug}-fgroup'] = []
             for clf_name in clf_dict.keys():
@@ -511,8 +478,9 @@ if __name__ == '__main__':
     clf_dict = {clf_name: clf for clf_name, clf in clf_choices.items() if clf_name in clf_list}
     cv_inner = int(goals["cv_inner"])
     cv_outer = LeaveOneOut() if goals["cv_outer"] == "LOO" else KFold(int(goals["cv_outer"]))
-    goals_code = f"{'-'.join([str(c) for c in cohorts])}_{'-'.join([d[:4] for d in drugs])}_{'-'.join([m[:3] for m in methods])}_{'-'.join([clf_name for clf_name in clf_dict.keys()])}"
+    goals_code = f"{'-'.join([str(c) for c in cohorts])}_{'-'.join([d[:4] for d in drugs])}_{'-'.join([m[:3] for m in methods])}_{'-'.join([clf_name for clf_name in clf_dict.keys()])}_{impute_method}"
 
+    print(f'Process missing data with {impute_method} imputation')
 
     # %% non-network features
     if int(sys.argv[1]):

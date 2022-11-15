@@ -506,3 +506,11 @@ def thresholding(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOne
         results.append(search.score(X_test_best, y_test))
 
     return np.mean(results)
+
+
+def handpick_features(drug, X_df):
+    features_idx = [X_df.columns.get_loc(c) for c in X_df if c.startswith('AC') or c in ['DM1','DM8','DM9','DM23','SC5','SC6','SC9']]
+    if drug == 'marijuana':
+        return sorted(features_idx + [X_df.columns.get_loc('ND1')])
+    elif drug == 'meth':
+        return sorted(features_idx + [X_df.columns.get_loc('ND7')])
