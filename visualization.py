@@ -108,21 +108,28 @@ def load_and_impute(cohort, drug, predict=False, impute=True, encode=True):
 
 
 def case_var_delete(cohort, drug, thresh=0.9):  # delete case or variable if too many missing values
-    X_df, dep_var_full = load_and_impute(cohort, drug, encode=False, impute=False, predict=False)    # y_nan = np.argwhere(np.isnan(dep_var_full)).flatten()
-    X_droprow_df = X_df.dropna(axis=0, thresh=len(X_df.columns)*thresh)  # drop row (partcipant) if missing 10% out of all features
-    y = dep_var_full[X_droprow_df.index]
-    X_droprow_df.reset_index(drop=True, inplace=True)
-    X_drop_df = X_droprow_df.dropna(axis=1, thresh=len(X_droprow_df)*thresh)  # drop column (variable) if missing 10% out of all participants
-    print(X_drop_df.shape, len(y), y)
-    if np.isnan(y).any():
-        print('yes', len(np.argwhere(np.isnan(y)).flatten()))
-        X_drop_df = X_drop_df.drop(np.argwhere(np.isnan(y)).flatten())
-    return X_drop_df, y[~np.isnan(y)]
+    # X_df, dep_var_full = load_and_impute(cohort, drug, encode=False, impute=False, predict=False)    # y_nan = np.argwhere(np.isnan(dep_var_full)).flatten()
+    # X_droprow_df = X_df.dropna(axis=0, thresh=len(X_df.columns)*thresh)  # drop row (partcipant) if missing 10% out of all features
+    # y = dep_var_full[X_droprow_df.index]
+    # X_droprow_df.reset_index(drop=True, inplace=True)
+    # X_drop_df = X_droprow_df.dropna(axis=1, thresh=len(X_droprow_df)*thresh)  # drop column (variable) if missing 10% out of all participants
+    # print(X_drop_df.shape, len(y), y)
+    # if np.isnan(y).any():
+    #     print('yes', len(np.argwhere(np.isnan(y)).flatten()))
+    #     X_drop_df = X_drop_df.drop(np.argwhere(np.isnan(y)).flatten())
+    # return X_drop_df, y[~np.isnan(y)]
+
+    X_df, y = load_and_impute(cohort, drug, encode=False, impute=False, predict=True)
+    X_dropcol_df = X_df.dropna(axis=1, thresh=len(X_df)*thresh)  # drop column (variable) if missing 10% out of all participants
+    X_drop_df = X_dropcol_df.dropna(axis=0, thresh=len(X_dropcol_df.columns)*thresh)  # drop row (partcipant) if missing 10% out of all features
+    if len(X_drop_df) < len(X_df):  y = y[X_drop_df.index]
+    print(X_df.shape, X_drop_df.shape, len(y))
+    return X_drop_df, y
 
 
-def plot_missingness(cohort, save=False):
+def plot_missingness(cohort, drug, save=False):
 
-    X_df, _ = load_and_impute(cohort, encode=False, impute=False)
+    X_df, _ = load_and_impute(cohort, drug, encode=False, impute=False)
 
     plt.subplots(figsize=(50,15), tight_layout=True)
     ax = sns.heatmap(X_df.isna(), cbar=False)
@@ -178,13 +185,13 @@ if __name__ == '__main__':
     C1W1nonet_df = pd.read_csv(datapath + 'C1W1_nonnetwork_preimputed.csv')
     C1pred_df = pd.read_csv(datapath + 'C1_nonnetwork_pred.csv')
     C1W1nonet_vars = list(C1W1nonet_df.columns)
-    C2W1nonet_df = pd.read_csv(datapath + 'C2W1_nonnetwork_preimputed.csv')
-    C2pred_df = pd.read_csv(datapath + 'C2_nonnetwork_pred.csv')
+    C2W1nonet_df = pd.read_csv(datapath + '221114/C2W1_nonnetwork_preimputed.csv')
+    C2pred_df = pd.read_csv(datapath + '221114/C2_nonnetwork_pred.csv')
     C2W1nonet_vars = list(C2W1nonet_df.columns)
 
     # # %% plot missingness of (non-network) data
     # for cohort in cohorts:
-    #     plot_missingness(cohort)
+    #     plot_missingness(cohort, 'marijuana', save=True)
 
 
     # # %% plot distribution of C1 vs C2 (non-network data)
@@ -199,8 +206,8 @@ if __name__ == '__main__':
             C1W1nonet_df = pd.read_csv(datapath + 'C1W1_nonnetwork_preimputed.csv')
             C1pred_df = pd.read_csv(datapath + 'C1_nonnetwork_pred.csv')
             C1W1nonet_vars = list(C1W1nonet_df.columns)
-            C2W1nonet_df = pd.read_csv(datapath + 'C2W1_nonnetwork_preimputed.csv')
-            C2pred_df = pd.read_csv(datapath + 'C2_nonnetwork_pred.csv')
+            C2W1nonet_df = pd.read_csv(datapath + '221114/C2W1_nonnetwork_preimputed.csv')
+            C2pred_df = pd.read_csv(datapath + '221114/C2_nonnetwork_pred.csv')
             C2W1nonet_vars = list(C2W1nonet_df.columns)
 
             X_drop_df, y = case_var_delete(cohort, drug)

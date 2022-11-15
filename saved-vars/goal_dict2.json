@@ -1,8 +1,9 @@
 {
-    "cohorts": [1],
+    "cohorts": [2],
     "drugs": ["meth"],
-    "methods": ["GA"],
+    "methods": ["chi2"],
     "cv_inner": 10,
     "cv_outer": "LOO",
-    "clf_list": ["LG_L1"]
+    "clf_list": ["LG_L1"],
+    "imputation": "missforest"
 }
