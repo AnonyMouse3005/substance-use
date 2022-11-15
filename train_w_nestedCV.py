@@ -543,8 +543,8 @@ if __name__ == '__main__':
     C1pred_df = pd.read_csv(datapath + 'C1_nonnetwork_pred.csv')
     C1W1nonet_vars = list(C1W1nonet_df.columns)
 
-    C2W1nonet_df = pd.read_csv(datapath + 'C2W1_nonnetwork_preimputed.csv')
-    C2pred_df = pd.read_csv(datapath + 'C2_nonnetwork_pred.csv')
+    C2W1nonet_df = pd.read_csv(datapath + '221114/C2W1_nonnetwork_preimputed.csv')
+    C2pred_df = pd.read_csv(datapath + '221114/C2_nonnetwork_pred.csv')
     C2W1nonet_vars = list(C2W1nonet_df.columns)
 
     with open(sys.argv[4], 'r') as f:  # load dict containing lists of cohorts, drugs, and methods to be investigated
