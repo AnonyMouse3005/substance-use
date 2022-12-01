@@ -1,9 +1,9 @@
 {
     "cohorts": [2],
     "drugs": ["marijuana"],
-    "methods": ["pca", "chi2", "thresholding", "manual"],
+    "methods": ["thresholding","chi2","pca","manual"],
     "cv_inner": 10,
     "cv_outer": "LOO",
-    "clf_list": ["DT"],
+    "clf_list": ["RF", "GB"],
     "scoring": "recall"
 }

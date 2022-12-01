@@ -79,7 +79,7 @@ def load_data_v2(cohort, drug):
     X_df = df[df['pred'].notna()].drop(discarded_vars+['pred'], axis=1)
     X_df.reset_index(drop=True, inplace=True)
 
-    return X_df, y
+    return X_df, y, dep_var_full
 
 
 def merge_vars(df):
@@ -107,9 +107,9 @@ def merge_vars(df):
     return df
 
 
-def case_var_delete_v3(cohort, drug, thresh=0.9, threshold=None):  # delete case and/or variable if too many missing values
+def case_var_delete_v3(cohort, drug, thresh=0.9):  # delete case and/or variable if too many missing values
 
-    X_df, y = load_data_v2(cohort, drug)
+    X_df, y, dep_var_full = load_data_v2(cohort, drug)
     X_dropcol_df = X_df.dropna(axis=1, thresh=len(X_df)*thresh)  # drop column (variable) if missing 10% out of all participants
     X_drop_df = X_df.dropna(axis=0, thresh=len(X_dropcol_df.columns)*thresh)  # drop row (partcipant) if missing 10% out of all features
     if len(X_drop_df) < len(X_df):  y = y[X_drop_df.index]
@@ -133,7 +133,7 @@ def case_var_delete_v3(cohort, drug, thresh=0.9, threshold=None):  # delete case
     X_imp_df = pd.DataFrame(X_imp, columns=Xenc_df.columns)
     print(X_imp_df.shape)
 
-    return X_imp_df.to_numpy(), y, X_imp_df
+    return X_imp_df.to_numpy(), y, X_imp_df, dep_var_full, list(X_drop_df.index)  # last 2 outputs only needed when including network features
 
 
 
@@ -159,8 +159,7 @@ def run_nonnetwork():
                 f_indices = [Xenc_df.columns.get_loc(c) for c in Xenc_df if c.startswith(g)]  # column indices of the group's features
                 f_dict[g] = f_indices
 
-            # baseline = stats.mode(y)[1][0]/len(y)
-            baseline = 0.5
+            acc_baseline = stats.mode(y)[1][0]/len(y)
 
             # Domain-specific feature grouping
             if 'manual' in methods:
@@ -172,7 +171,7 @@ def run_nonnetwork():
                         preds, preds_proba = [], []
                         for train_idx, test_idx in cv_outer.split(X):
                             X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
-                            if clf_name != 'DT':    X_train, X_test = norm_scale(X_train, X_test)
+                            if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
                             search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=5, scoring=scoring)
                             search.fit(X_train, y_train)
                             if clf_name=='SVM':     preds_proba.append(search.decision_function(X_test)[0])
@@ -195,9 +194,9 @@ def run_nonnetwork():
                     scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(auroc)
                     scores_dict[f'{cohort}-{drug}-{clf_name}-recall'].append(recall)
 
-            scores_dict[f'{cohort}-{drug}-baseline'] = [baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
+            scores_dict[f'{cohort}-{drug}-baseline'] = [acc_baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
-    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nestedCV_scores_nonnetwork_{goals_code}.csv', index=False)
+    pd.DataFrame.from_dict(dict(sorted(scores_dict.items()))).to_csv(f'results/nestedCV_scores_nonnetwork_{goals_code}.csv', index=False)
 
 
 def run_network():
@@ -207,51 +206,28 @@ def run_network():
 
             print(f'At Cohort {cohort}, {drug} using network features')
 
+            _, y, _, dep_var_full, rows_idx = case_var_delete_v3(cohort, drug)  # df with dropped rows and columns if too much missingness
+            net_df = pd.read_csv(f"saved-vars/C{''.join(str(cohort).split('+'))}_network_221114-processed.csv")
+            net_df = pd.concat([net_df, pd.DataFrame({'pred': dep_var_full})], axis=1)
+            Xnet_df = net_df[net_df['pred'].notna()].drop('pred', axis=1)  # drop rows where prediction var is missing
+            Xnet_df.reset_index(drop=True, inplace=True)
+            Xnet_df = Xnet_df.loc[rows_idx]  # drop rows that have been dropped by case_var_delete
+            X_np = Xnet_df.to_numpy()
+            
+
             scores_dict[f'{cohort}-{drug}-fgroup'] = []
             for clf_name in clf_dict.keys():
-                scores_dict[f'{cohort}-{drug}-{clf_name}'] = []
-
-            # csv generated from data_net_analysis.ipynb (Cramer's V section)
-            df = pd.read_csv(f"saved-vars/C{''.join(str(cohort).split('+'))}_network_221114-processed.csv")
-            if cohort == 1:
-                pred_df = C1pred_df
-                pred_var = zip(pred_df['ND1'], pred_df['Q68']) if drug == 'marijuana' else zip(pred_df['ND7'], pred_df['Q75'])
-            elif cohort == 2:
-                pred_df = C2pred_df
-                pred_var = zip(pred_df['ND1'], pred_df['W2_ND1']) if drug == 'marijuana' else zip(pred_df['ND7'], pred_df['W2_ND7'])
-            elif cohort == '1+2':
-                colname_map = {}
-                C2pred_keys = list(C2pred_df.columns)
-                for i, c in enumerate(list(C1pred_df.columns)):  # map column names of C2pred_df to C1pred_df (since C1W2 has different varnames)
-                    colname_map[C2pred_keys[i]] = c
-
-                pred_df = pd.concat([C1pred_df, C2pred_df.rename(columns=colname_map)], ignore_index=True)
-                pred_var = zip(pred_df['ND1'], pred_df['Q68']) if drug == 'marijuana' else zip(pred_df['ND7'], pred_df['Q75'])
-            
-            dep_var_full = []
-            for a, b in pred_var:
-                if not np.isnan(a) and not np.isnan(b):
-                    y = 0 if a <= b else 1
-                    # y = a - b
-                    dep_var_full.append(y)
-                else:   dep_var_full.append(np.nan)
-
-            df = pd.concat([df, pd.DataFrame({'pred': dep_var_full})], axis=1)  # drop rows where prediction var is missing
-            X_df = df[df['pred'].notna()].drop('pred', axis=1)
+                scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'] = []
+                scores_dict[f'{cohort}-{drug}-{clf_name}-recall'] = []
 
             # Group features
             f_dict = {}
             fgroups = ['NSX','NDX']  # feature groups
             for g in fgroups:
-                f_indices = [X_df.columns.get_loc(c) for c in X_df if c.startswith(g)]  # column indices of the group's features
+                f_indices = [Xnet_df.columns.get_loc(c) for c in Xnet_df if c.startswith(g)]  # column indices of the group's features
                 f_dict[g] = f_indices
 
-            X_np = X_df.to_numpy()
-
-            # Learning curve
-            y = np.array(dep_var_full)
-            y = y[~np.isnan(y)]
-            baseline = stats.mode(y)[1][0]/len(y)
+            acc_baseline = stats.mode(y)[1][0]/len(y)
 
             # Domain-specific feature grouping
             if 'manual' in methods:
@@ -260,16 +236,17 @@ def run_network():
                     X = X_np[:, [f for fgroup in [f_dict[s] for s in fsubs] for f in fgroup]]
                     for clf_name, clf in clf_dict.items():
                         print(f'Cohort {cohort}, {drug}: start running manual grouping {gname} for {clf_name}')
-                        scores = []
+                        preds, preds_proba = [], []
                         for train_idx, test_idx in cv_outer.split(X):
                             X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
-                            if clf_name != 'DT':
-                                X_train = standard_scale(X_train)
-                                X_test = standard_scale(X_test)
-                            search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=5)
+                            if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
+                            search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=5, scoring=scoring)
                             search.fit(X_train, y_train)
-                            scores.append(search.score(X_test, y_test))
-                        scores_dict[f'{cohort}-{drug}-{clf_name}'].append(np.mean(scores))
+                            if clf_name=='SVM':     preds_proba.append(search.decision_function(X_test)[0])
+                            else:   preds_proba.append(search.predict_proba(X_test)[:,1][0])
+                            preds.append(search.predict(X_test)[0])
+                        scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(roc_auc_score(y, np.array(preds_proba)))
+                        scores_dict[f'{cohort}-{drug}-{clf_name}-recall'].append(recall_score(y, np.array(preds)))
 
             # various feature selection methods
             for m_name in methods:
@@ -277,16 +254,17 @@ def run_network():
                 scores_dict[f'{cohort}-{drug}-fgroup'].append(m_name)
                 for clf_name, clf in clf_dict.items():
                     print(f'Cohort {cohort}, {drug}: start running {m_name} for {clf_name}')
-                    if m_name == 'thresholding':    final_score = thresholding(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer)
-                    if m_name == 'chi2':    final_score = chi2_filter(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer)
-                    if m_name == 'pca':    final_score = pca(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer)
-                    if m_name == "GA":     final_score = genetic_alg(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer)
-                    if m_name == "GAmod":   final_score = genetic_alg_mod(clf, clf_name, clf_params[clf_name], X_np, y, cv_inner, cv_outer)
-                    scores_dict[f'{cohort}-{drug}-{clf_name}'].append(final_score)
+                    if m_name == 'thresholding':    auroc, recall = thresholding(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer, scoring)
+                    if m_name == 'chi2':    auroc, recall = chi2_filter(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer, scoring)
+                    if m_name == 'pca':    auroc, recall = pca(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer, scoring)
+                    if m_name == "GA":     auroc, recall = genetic_alg(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer, scoring)
+                    if m_name == "GAmod":   auroc, recall = genetic_alg_mod(clf, clf_name, clf_params[clf_name], X_np, y, cv_inner, cv_outer, scoring)
+                    scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(auroc)
+                    scores_dict[f'{cohort}-{drug}-{clf_name}-recall'].append(recall)
 
-            scores_dict[f'{cohort}-{drug}-baseline'] = [baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
+            scores_dict[f'{cohort}-{drug}-baseline'] = [acc_baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
-    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nestedCV_scores_network_{goals_code}.csv', index=False)
+    pd.DataFrame.from_dict(dict(sorted(scores_dict.items()))).to_csv(f'results/nestedCV_scores_network_{goals_code}.csv', index=False)
 
 
 def run_netnonnetwork():
@@ -297,23 +275,24 @@ def run_netnonnetwork():
             print(f'At Cohort {cohort}, {drug} using network + non-network features')
 
             #---------------------------------- Non-network ------------------------------------------------------
-            X_imp, y, Xenc_df, drop_idx, dep_var_full = case_var_delete_v3(cohort, drug)  # df with dropped rows and columns if too much missingness
+            X_imp, y, Xenc_df, dep_var_full, rows_idx = case_var_delete_v3(cohort, drug)  # df with dropped rows and columns if too much missingness
 
             #---------------------------------- Network ------------------------------------------------------
             net_df = pd.read_csv(f"saved-vars/C{''.join(str(cohort).split('+'))}_network_221114-processed.csv")
-            net_df = pd.concat([net_df, pd.DataFrame({'pred': dep_var_full})], axis=1)  # drop rows where prediction var is missing
-            Xnet_df = net_df[net_df['pred'].notna()].drop('pred', axis=1)
-
+            net_df = pd.concat([net_df, pd.DataFrame({'pred': dep_var_full})], axis=1)
+            Xnet_df = net_df[net_df['pred'].notna()].drop('pred', axis=1)  # drop rows where prediction var is missing
+            Xnet_df.reset_index(drop=True, inplace=True)
+            Xnet_df = Xnet_df.loc[rows_idx]  # drop rows that have been dropped by case_var_delete
             X_np = Xnet_df.to_numpy()
 
             #-------------------------------------------------------------------------------------------
             X_all = np.concatenate((X_imp, X_np), axis=1)
-            X_df = pd.concat([Xenc_df, Xnet_df], axis=1)
             
 
             scores_dict[f'{cohort}-{drug}-fgroup'] = []
             for clf_name in clf_dict.keys():
-                scores_dict[f'{cohort}-{drug}-{clf_name}'] = []
+                scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'] = []
+                scores_dict[f'{cohort}-{drug}-{clf_name}-recall'] = []
 
             # Group non-network features
             f_nonet_dict = {}
@@ -328,7 +307,7 @@ def run_netnonnetwork():
                 f_indices = [Xnet_df.columns.get_loc(c) for c in Xnet_df if c.startswith(g)]  # column indices of the group's features
                 f_net_dict[g] = f_indices
 
-            baseline = stats.mode(y)[1][0]/len(y)
+            acc_baseline = stats.mode(y)[1][0]/len(y)
 
             # Domain-specific feature grouping
             if 'manual' in methods:
@@ -339,16 +318,17 @@ def run_netnonnetwork():
                     X = np.concatenate((X_nonet, X_net), axis=1)
                     for clf_name, clf in clf_dict.items():
                         print(f'Cohort {cohort}, {drug}: start running manual grouping {gname} for {clf_name}')
-                        scores = []
+                        preds, preds_proba = [], []
                         for train_idx, test_idx in cv_outer.split(X):
                             X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
-                            if clf_name != 'DT':
-                                X_train = standard_scale(X_train)
-                                X_test = standard_scale(X_test)
-                            search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=5)
+                            if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
+                            search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=5, scoring=scoring)
                             search.fit(X_train, y_train)
-                            scores.append(search.score(X_test, y_test))
-                        scores_dict[f'{cohort}-{drug}-{clf_name}'].append(np.mean(scores))
+                            if clf_name=='SVM':     preds_proba.append(search.decision_function(X_test)[0])
+                            else:   preds_proba.append(search.predict_proba(X_test)[:,1][0])
+                            preds.append(search.predict(X_test)[0])
+                        scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(roc_auc_score(y, np.array(preds_proba)))
+                        scores_dict[f'{cohort}-{drug}-{clf_name}-recall'].append(recall_score(y, np.array(preds)))
 
             # various feature selection methods
             for m_name in methods:
@@ -356,16 +336,17 @@ def run_netnonnetwork():
                 scores_dict[f'{cohort}-{drug}-fgroup'].append(m_name)
                 for clf_name, clf in clf_dict.items():
                     print(f'Cohort {cohort}, {drug}: start running {m_name} for {clf_name}')
-                    if m_name == 'thresholding':    final_score = thresholding(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer)
-                    if m_name == 'chi2':    final_score = chi2_filter(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer)
-                    if m_name == 'pca':    final_score = pca(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer)
-                    if m_name == "GA":     final_score = genetic_alg(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer)
-                    if m_name == "GAmod":   final_score = genetic_alg_mod(clf, clf_name, clf_params[clf_name], X_all, y, cv_inner, cv_outer)
-                    scores_dict[f'{cohort}-{drug}-{clf_name}'].append(final_score)
+                    if m_name == 'thresholding':    auroc, recall = thresholding(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer, scoring)
+                    if m_name == 'chi2':    auroc, recall = chi2_filter(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer, scoring)
+                    if m_name == 'pca':    auroc, recall = pca(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer, scoring)
+                    if m_name == "GA":     auroc, recall = genetic_alg(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer, scoring)
+                    if m_name == "GAmod":   auroc, recall = genetic_alg_mod(clf, clf_name, clf_params[clf_name], X_all, y, cv_inner, cv_outer, scoring)
+                    scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(auroc)
+                    scores_dict[f'{cohort}-{drug}-{clf_name}-recall'].append(recall)
 
-            scores_dict[f'{cohort}-{drug}-baseline'] = [baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
+            scores_dict[f'{cohort}-{drug}-baseline'] = [acc_baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
-    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nestedCV_scores_nonnetwork+network_{goals_code}.csv', index=False)
+    pd.DataFrame.from_dict(dict(sorted(scores_dict.items()))).to_csv(f'results/nestedCV_scores_nonnetwork+network_{goals_code}.csv', index=False)
 
 
 if __name__ == '__main__':
