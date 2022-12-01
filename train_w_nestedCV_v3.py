@@ -1,4 +1,4 @@
-# %% This version test different imputation methods
+# %% This version test regression models instead of clf
 import ast
 import json
 import multiprocessing
@@ -21,14 +21,14 @@ from sklearn.feature_selection import (SelectFromModel, SelectPercentile, chi2,
                                        mutual_info_classif)
 from sklearn.impute import IterativeImputer, SimpleImputer
 from sklearn.inspection import permutation_importance
-from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
+from sklearn.linear_model import LogisticRegression, LassoCV, RidgeCV, ElasticNetCV
 from sklearn.metrics import RocCurveDisplay
 from sklearn.model_selection import *
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
-from sklearn.svm import SVC, LinearSVC
-from sklearn.tree import DecisionTreeClassifier, export_text, plot_tree
+from sklearn.svm import SVC, LinearSVC, SVR
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor, export_text, plot_tree
 from sklearn.utils._testing import ignore_warnings
 from tqdm import tqdm
 
@@ -36,16 +36,38 @@ from helper import *
 
 
 # %% load data and impute
+def find_range(ls):
+
+    diff = []
+    for e in product(ls, ls):
+        diff.append(e[0]-e[1])
+        
+    return sorted(set(diff))
+
+
+def get_score(pred, gt, zero_pt):
+    if (pred>zero_pt and gt <= zero_pt) or (pred <= zero_pt and gt > zero_pt):
+        return 0
+    else: return 1
+
+
 def load_data(cohort, drug):
+
+    drug_key = 'ND1' if drug == 'marijuana' else 'ND7'
+    with open('saved-vars/labelings_non-network.json', 'r') as f:
+        nnw_labelings = json.load(f)
+    pred_categories = list(map(int, nnw_labelings[drug_key][1].keys()))
+    le = LabelEncoder()  # encode labels
+    le.fit(find_range(pred_categories))
 
     if cohort == 1:
         nonet_vars, nonet_df = C1W1nonet_vars, C1W1nonet_df
         pred_df = C1pred_df
-        pred_var = zip(pred_df['ND1'], pred_df['Q68']) if drug == 'marijuana' else zip(pred_df['ND7'], pred_df['Q75'])
+        pred_var = zip(pred_df[drug_key], pred_df['Q68']) if drug == 'marijuana' else zip(pred_df[drug_key], pred_df['Q75'])
     elif cohort == 2:
         nonet_vars, nonet_df = C2W1nonet_vars, C2W1nonet_df
         pred_df = C2pred_df
-        pred_var = zip(pred_df['ND1'], pred_df['W2_ND1']) if drug == 'marijuana' else zip(pred_df['ND7'], pred_df['W2_ND7'])
+        pred_var = zip(pred_df[drug_key], pred_df[f'W2_{drug_key}'])
     elif cohort == '1+2':
         nonet_df = pd.concat([C1W1nonet_df, C2W1nonet_df], ignore_index=True)
         nonet_vars = C1W1nonet_vars  # same set of columns for both cohorts
@@ -54,7 +76,7 @@ def load_data(cohort, drug):
         for i, c in enumerate(list(C1pred_df.columns)):  # map column names of C2pred_df to C1pred_df (since C1W2 has different varnames)
             colname_map[C2pred_keys[i]] = c
         pred_df = pd.concat([C1pred_df, C2pred_df.rename(columns=colname_map)], ignore_index=True)
-        pred_var = zip(pred_df['ND1'], pred_df['Q68']) if drug == 'marijuana' else zip(pred_df['ND7'], pred_df['Q75'])
+        pred_var = zip(pred_df[drug_key], pred_df['Q68']) if drug == 'marijuana' else zip(pred_df[drug_key], pred_df['Q75'])
         
     df = impute_MARs(nonet_vars, nonet_df)
     discarded_vars = ['PID','PID2','AL6B','ID13','ID14_4','ID14_5','ID14_6','ID14_7','ND13','ND15_4','ND15_5','ND15_6','ND15_7',
@@ -63,25 +85,26 @@ def load_data(cohort, drug):
     dep_var_full = []
     for a, b in pred_var:
         if not np.isnan(a) and not np.isnan(b):
-            y = 1 if b - a > 0 else 0
-            # y = 1 if b - a > 1 else 0
-            # y = b - a
+            # y = 0 if a <= b else 1
+            y = b - a
             dep_var_full.append(y)
         else:   dep_var_full.append(np.nan)
 
     df = pd.concat([df, pd.DataFrame({'pred': dep_var_full})], axis=1)  # drop rows where prediction var is missing
     y = np.array(dep_var_full)
     y = y[~np.isnan(y)]
+    y = le.transform(y)
+    zero_pt = le.transform([0])[0]
 
     X_df = df[df['pred'].notna()].drop(discarded_vars+['pred'], axis=1)
     X_df.reset_index(drop=True, inplace=True)
 
-    return X_df, y, dep_var_full
+    return X_df, y, dep_var_full, zero_pt
 
 
 def case_var_delete(cohort, drug, thresh=0.9):  # delete case and/or variable if too many missing values
 
-    X_df, y, dep_var_full = load_data(cohort, drug)
+    X_df, y, dep_var_full, zero_pt = load_data(cohort, drug)
     X_dropcol_df = X_df.dropna(axis=1, thresh=len(X_df)*thresh)  # drop column (variable) if missing 10% out of all participants
     X_drop_df = X_df.dropna(axis=0, thresh=len(X_dropcol_df.columns)*thresh)  # drop row (partcipant) if missing 10% out of all features
     if len(X_drop_df) < len(X_df):  y = y[X_drop_df.index]
@@ -102,29 +125,39 @@ def case_var_delete(cohort, drug, thresh=0.9):  # delete case and/or variable if
     imp = SimpleImputer(missing_values=np.nan, strategy='most_frequent')
     X_imp = imp.fit_transform(Xenc_df)
 
-    return X_imp, y, Xenc_df, list(X_drop_df.index), dep_var_full
+    return X_imp, y, Xenc_df, list(X_drop_df.index), dep_var_full, zero_pt
 
 
-def missforest(cohort, drug):
-    X_df, y, dep_var_full = load_data(cohort, drug)
-    nominal_vars = ['DM8','DM10','DM12','DM13']
-    X_ordinal_df = X_df.drop(nominal_vars, axis=1)
-    X_nominal_df = X_df[nominal_vars]
-    Xenc_ordinal_df = X_ordinal_df.astype('str').apply(LabelEncoder().fit_transform)
-    Xenc_ordinal_df = Xenc_ordinal_df.where(~X_ordinal_df.isna(), X_ordinal_df)  # Do not encode the NaNs
-    Xenc_df = pd.concat([Xenc_ordinal_df, X_nominal_df], axis=1)
-    imp = IterativeImputer(estimator=RandomForestClassifier(), 
-                    initial_strategy='most_frequent',
-                    max_iter=10, random_state=0)
-    X = imp.fit_transform(Xenc_df)
-    X_nominal_df = pd.DataFrame(X[:, -len(nominal_vars):], columns=nominal_vars)
-    nominal_cols = []
-    for v in nominal_vars:
-        nominal_cols.append(pd.get_dummies(X_nominal_df[v], prefix=v))
-    Xenc_nominal_df = pd.concat(nominal_cols, axis=1)
-    Xenc_df = pd.concat([Xenc_ordinal_df, Xenc_nominal_df], axis=1)
-    X = np.concatenate((X[:, :-len(nominal_vars)], Xenc_nominal_df.to_numpy()), axis=1)
-    return X, y, Xenc_df, dep_var_full
+@ignore_warnings(category=ConvergenceWarning)
+def genetic_alg(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut(), scoring='accuracy'):
+
+    results = []
+    print(f'classifier: {clf_name}')
+    X = standard_scale(X_raw) if clf_name != 'DT' else X_raw
+    i = 0
+    for train_idx, test_idx in cv_outer.split(X):
+        i += 1
+        n_splits = cv_outer.n_splits if hasattr(cv_outer, 'n_splits') else X.shape[0]
+        print(f'At fold {i}/{n_splits} (outer CV)')
+        X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
+        model = GeneticSelectionCV(
+            clf, cv=cv, verbose=0,
+            scoring=scoring, max_features=None,
+            n_population=300, crossover_proba=0.5,
+            mutation_proba=0.2, n_generations=40,
+            crossover_independent_proba=0.1,
+            mutation_independent_proba=0.05,
+            tournament_size=3, n_gen_no_change=10,
+            caching=False, n_jobs=-1)
+        model = model.fit(X_train, y_train)
+
+        X_train_new, X_test_new = X_train[:, model.support_], X_test[:, model.support_]
+        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True)
+        search.fit(X_train_new, y_train)
+
+        results.append(search.score(X_test_new, y_test))
+    
+    return np.mean(results)
 
 
 # %% which feature type to use for training?
@@ -135,11 +168,8 @@ def run_nonnetwork():
 
             print(f'At Cohort {cohort}, {drug} using non-network features')
 
-            if impute_method == 'case-var-del':
-                X_imp, y, Xenc_df, _, _ = case_var_delete(cohort, drug)  # df with dropped rows and columns if too much missingness
-            elif impute_method == 'missforest':
-                X_imp, y, Xenc_df, _ = missforest(cohort, drug)
-
+            X_imp, y, Xenc_df, _, _, zero_pt = case_var_delete(cohort, drug)  # df with dropped rows and columns if too much missingness
+            
             scores_dict[f'{cohort}-{drug}-fgroup'] = []
             for clf_name in clf_dict.keys():
                 scores_dict[f'{cohort}-{drug}-{clf_name}'] = []
@@ -163,12 +193,9 @@ def run_nonnetwork():
                         scores = []
                         for train_idx, test_idx in cv_outer.split(X):
                             X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
-                            if clf_name != 'DT':
-                                X_train = standard_scale(X_train)
-                                X_test = standard_scale(X_test)
-                            search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=5)
-                            search.fit(X_train, y_train)
-                            scores.append(search.score(X_test, y_test))
+                            reg = clf.fit(X_train, y_train)
+                            prediction = reg.predict(X_test)[0]
+                            scores.append(get_score(prediction, y_test, zero_pt))
                         scores_dict[f'{cohort}-{drug}-{clf_name}'].append(np.mean(scores))
 
             # various feature selection methods
@@ -275,7 +302,7 @@ def run_network():
 
             scores_dict[f'{cohort}-{drug}-baseline'] = [baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
-    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nestedCV_scores_network_{goals_code}.csv', index=False)
+    pd.DataFrame.from_dict(scores_dict).to_csv(f'scores/nestedCV_scores_network_{goals_code}.csv', index=False)
 
 
 def run_netnonnetwork():
@@ -286,16 +313,13 @@ def run_netnonnetwork():
             print(f'At Cohort {cohort}, {drug} using network + non-network features')
 
             #---------------------------------- Non-network ------------------------------------------------------
-            if impute_method == 'case-var-del':
-                X_imp, y, Xenc_df, drop_idx, dep_var_full = case_var_delete(cohort, drug)  # df with dropped rows and columns if too much missingness
-            elif impute_method == 'missforest':
-                X_imp, y, Xenc_df, dep_var_full = missforest(cohort, drug)
+            X_imp, y, Xenc_df, drop_idx, dep_var_full = case_var_delete(cohort, drug)  # df with dropped rows and columns if too much missingness
 
             #---------------------------------- Network ------------------------------------------------------
             net_df = pd.read_csv(f"saved-vars/C{''.join(str(cohort).split('+'))}_network_221114-processed.csv")
             net_df = pd.concat([net_df, pd.DataFrame({'pred': dep_var_full})], axis=1)  # drop rows where prediction var is missing
             Xnet_df = net_df[net_df['pred'].notna()].drop('pred', axis=1)
-            if impute_method == 'case-var-del':     Xnet_df = Xnet_df.iloc[drop_idx]  # drop rows that were dropped during case-var-del of nonnetwork data
+            Xnet_df = Xnet_df.iloc[drop_idx]  # drop rows that were dropped during case-var-del of nonnetwork data
 
             X_np = Xnet_df.to_numpy()
 
@@ -358,7 +382,7 @@ def run_netnonnetwork():
 
             scores_dict[f'{cohort}-{drug}-baseline'] = [baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
-    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nestedCV_scores_nonnetwork+network_{goals_code}.csv', index=False)
+    pd.DataFrame.from_dict(scores_dict).to_csv(f'scores/nestedCV_scores_nonnetwork+network_{goals_code}.csv', index=False)
 
 
 if __name__ == '__main__':
@@ -384,7 +408,7 @@ if __name__ == '__main__':
 
     with open(sys.argv[4], 'r') as f:  # load dict containing lists of cohorts, drugs, and methods to be investigated
         goals = json.load(f)
-    cohorts, drugs, methods, clf_list, impute_method = goals["cohorts"], goals["drugs"], goals["methods"], goals["clf_list"], goals["imputation"]
+    cohorts, drugs, methods, clf_list = goals["cohorts"], goals["drugs"], goals["methods"], goals["clf_list"]
 
 
     # %% domain-specific feature groupings
@@ -403,12 +427,14 @@ if __name__ == '__main__':
 
 
     # %% classifiers considered
+    cv_inner = int(goals["cv_inner"])
+    cv_outer = LeaveOneOut() if goals["cv_outer"] == "LOO" else KFold(int(goals["cv_outer"]))
     clf_choices = {
-        'LG_L1': LogisticRegression(solver='saga', penalty='l1'),
-        'LG_L2': LogisticRegression(solver='saga', penalty='l2'),
-        'LG_EN': LogisticRegression(solver='saga', penalty='elasticnet', l1_ratio=0.5),
-        'DT': DecisionTreeClassifier(),
-        'SVM': SVC(cache_size=1000)
+        'Lasso': LassoCV(cv=cv_inner, random_state=0, max_iter=1000),
+        'Ridge': RidgeCV(cv=cv_inner),
+        'ENet': ElasticNetCV(cv=cv_inner, random_state=0, max_iter=1000),
+        'DTR': DecisionTreeRegressor(),
+        'SVR': SVR()
     }
     clf_params = {
         'LG_L1': {'names': ['C'], 'range': [(0.001, 1000)], 'bitwidth': 8},
@@ -425,11 +451,8 @@ if __name__ == '__main__':
         'SVM': dict(gamma=np.logspace(-4,2,num=7), C=np.logspace(-3,3,num=7))
     }
     clf_dict = {clf_name: clf for clf_name, clf in clf_choices.items() if clf_name in clf_list}
-    cv_inner = int(goals["cv_inner"])
-    cv_outer = LeaveOneOut() if goals["cv_outer"] == "LOO" else KFold(int(goals["cv_outer"]))
-    goals_code = f"{'-'.join([str(c) for c in cohorts])}_{'-'.join([d[:4] for d in drugs])}_{'-'.join([m[:3] for m in methods])}_{'-'.join([clf_name for clf_name in clf_dict.keys()])}_{impute_method}"
+    goals_code = f"{'-'.join([str(c) for c in cohorts])}_{'-'.join([d[:4] for d in drugs])}_{'-'.join([m[:3] for m in methods])}_{'-'.join([clf_name for clf_name in clf_dict.keys()])}"
 
-    print(f'Process missing non-network data with {impute_method} imputation')
 
     # %% non-network features
     if int(sys.argv[1]):

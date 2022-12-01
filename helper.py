@@ -1,4 +1,4 @@
-from itertools import chain, combinations
+from itertools import chain, combinations, product
 import json
 import sys
 
@@ -6,14 +6,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import scipy.stats as ss
 from sklearn.decomposition import PCA
+from sklearn.metrics import roc_auc_score, accuracy_score, recall_score
+from sklearn.base import clone
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.feature_selection import (SelectFromModel, SelectPercentile, chi2)
 from sklearn.model_selection import *
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, Normalizer
 from sklearn.utils._testing import ignore_warnings
 
-from helper import *
 from genetic_selection import GeneticSelectionCV
 sys.path.insert(0, '../sklearn-genetic-mod')
 from genetic_selection_mod import GeneticSelectionCV_mod
@@ -42,9 +44,12 @@ def standard_scale(X):
     scaler = StandardScaler().fit(X)
     return scaler.transform(X)
 
-def norm_scale(X):
-    scaler = Normalizer().fit(X)
-    return scaler.transform(X)
+def norm_scale(X_train, X_test):
+    normalizer = Normalizer()
+    X_train = normalizer.fit_transform(X_train)
+    X_test = normalizer.transform(X_test)
+    return X_train, X_test
+
 
 def json_dump(filepath, var):
     with open(filepath, 'w') as f:
@@ -139,46 +144,52 @@ def impute_MARs(vars, df):
                     df.at[idx, 'ID2'] = -1
                     for j in range(3,13):
                         df.at[idx, f'ID{j}'] = 0
-                    for j in range(15,21):
-                        df.at[idx, f'ID{j}'] = -1
+                    # for j in range(15,21):
+                    #     df.at[idx, f'ID{j}'] = -1
+                    df.at[idx, 'ID15'] = 8      #@ 22/11/29
+                    df.at[idx, 'ID16'] = -1      #@ 22/11/29
         if v == 'ID3':
             for idx, i in enumerate(col):
                 if i == 1:
                     for j in range(4,13):
                         df.at[idx, f'ID{j}'] = 0
-                    for j in range(15,21):
-                        df.at[idx, f'ID{j}'] = -1
-        if v == 'ID17':
-            for idx, i in enumerate(col):
-                if i == 1:
-                    for j in range(18,21):
-                        df.at[idx, f'ID{j}'] = -1
+                    df.at[idx, 'ID15'] = 8      #@ 22/11/27
+                    # for j in range(16,21):      #@ 22/11/27
+                    #     df.at[idx, f'ID{j}'] = -1
+                    df.at[idx, 'ID16'] = -1      #@ 22/11/29
+        # if v == 'ID17':                       #@ 22/11/29
+        #     for idx, i in enumerate(col):
+        #         if i == 1:
+        #             for j in range(18,21):
+        #                 df.at[idx, f'ID{j}'] = -1
         if v == 'ND1':
             for idx, i in enumerate(col):
                 if i == 1:
                     df.at[idx, 'ND2'] = -1
-        if v == 'OD1':
-            for idx, i in enumerate(col):
-                if i == 1:
-                    df.at[idx, 'OD2'] = 0
-        if v == 'OD6':
-            for idx, i in enumerate(col):
-                if i == 2:
-                    for j in range(7,12):
-                        df.at[idx, f'OD{j}'] = 0
-        if v == 'OD8':
-            for idx, i in enumerate(col):
-                if i == 1:
-                    df.at[idx, 'OD9'] = 0
-        if v == 'OD10':
-            for idx, i in enumerate(col):
-                if i == 1:
-                    df.at[idx, 'OD11'] = 0
+        # if v == 'OD1':                        #@ 22/11/29
+        #     for idx, i in enumerate(col):
+        #         if i == 1:
+        #             df.at[idx, 'OD2'] = 0
+        # if v == 'OD6':
+        #     for idx, i in enumerate(col):
+        #         if i == 2:
+        #             for j in range(7,12):
+        #                 df.at[idx, f'OD{j}'] = 0
+        # if v == 'OD8':
+        #     for idx, i in enumerate(col):
+        #         if i == 1:
+        #             df.at[idx, 'OD9'] = 0
+        # if v == 'OD10':
+        #     for idx, i in enumerate(col):
+        #         if i == 1:
+        #             df.at[idx, 'OD11'] = 0
         if v == 'CJ3':
             for idx, i in enumerate(col):
                 if i == 1:
-                    for j in range(4,8):
-                        df.at[idx, f'CJ{j}'] = -1
+                    # for j in range(4,8):
+                    # for j in [4,5]:     #@ 22/11/27
+                    #     df.at[idx, f'CJ{j}'] = -1
+                    df.at[idx, 'CJ5'] = -1  #@ 22/11/29
         if v == 'DM12':
             for idx, i in enumerate(col):
                 if i != 1:
@@ -359,27 +370,27 @@ def plot_learning_curve_v2(
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def genetic_alg_mod(clf, clf_name, hparams, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
+def genetic_alg_mod(clf, clf_name, hparams, X_raw, y, cv=10, cv_outer=LeaveOneOut(), scoring="accuracy"):
 
-    results = []
+    preds, preds_proba = [], []
     print(f'classifier: {clf_name}')
-    X = standard_scale(X_raw) if clf_name != 'DT' else X_raw
     i = 0
-    for train_idx, test_idx in cv_outer.split(X):
+    for train_idx, test_idx in cv_outer.split(X_raw):
         i += 1
-        n_splits = cv_outer.n_splits if hasattr(cv_outer, 'n_splits') else X.shape[0]
+        n_splits = cv_outer.n_splits if hasattr(cv_outer, 'n_splits') else X_raw.shape[0]
         print(f'At fold {i}/{n_splits} (outer CV)')
-        X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
+        X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
+        if clf_name != 'DT':    X_train, X_test = norm_scale(X_train, X_test)
         model = GeneticSelectionCV_mod(
             clf, cv=cv, verbose=0,
-            scoring="accuracy", max_features=None,
+            scoring=scoring, max_features=None,
             n_population=300, crossover_proba=0.5,
             mutation_proba=0.2, n_generations=40,
             crossover_independent_proba=0.1,
             mutation_independent_proba=0.05,
             tournament_size=3, n_gen_no_change=10,
             hparams=hparams,
-            caching=False, n_jobs=10)
+            caching=False, n_jobs=-1)
         model = model.fit(X_train, y_train)
 
         X_train_new, X_test_new = X_train[:, model.support_], X_test[:, model.support_]
@@ -388,124 +399,135 @@ def genetic_alg_mod(clf, clf_name, hparams, X_raw, y, cv=10, cv_outer=LeaveOneOu
             for k, v in best_params.items():
                 if k in ['max_depth', 'min_samples_split']:      v = int(round(v, 0))
                 setattr(clf, k, v)
-
-        results.append(clf.fit(X_train_new, y_train).score(X_test_new, y_test))
+        clf.fit(X_train_new, y_train)
+        
+        if clf_name=='SVM':     preds_proba.append(clf.decision_function(X_test_new)[0])
+        else:   preds_proba.append(clf.predict_proba(X_test_new)[:,1][0])
+        preds.append(clf.predict(X_test_new)[0])
     
-    return np.mean(results)
+    return roc_auc_score(y, np.array(preds_proba)), recall_score(y, np.array(preds))
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def genetic_alg(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
+def genetic_alg(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut(), scoring='accuracy'):
 
-    results = []
+    preds, preds_proba = [], []
     print(f'classifier: {clf_name}')
-    X = standard_scale(X_raw) if clf_name != 'DT' else X_raw
     i = 0
-    for train_idx, test_idx in cv_outer.split(X):
+    for train_idx, test_idx in cv_outer.split(X_raw):
         i += 1
-        n_splits = cv_outer.n_splits if hasattr(cv_outer, 'n_splits') else X.shape[0]
+        n_splits = cv_outer.n_splits if hasattr(cv_outer, 'n_splits') else X_raw.shape[0]
         print(f'At fold {i}/{n_splits} (outer CV)')
-        X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
+        X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
+        if clf_name != 'DT':    X_train, X_test = norm_scale(X_train, X_test)
         model = GeneticSelectionCV(
             clf, cv=cv, verbose=0,
-            scoring="accuracy", max_features=None,
+            scoring=scoring, max_features=None,
             n_population=300, crossover_proba=0.5,
             mutation_proba=0.2, n_generations=40,
             crossover_independent_proba=0.1,
             mutation_independent_proba=0.05,
             tournament_size=3, n_gen_no_change=10,
-            caching=False, n_jobs=10)
+            caching=False, n_jobs=-1)
         model = model.fit(X_train, y_train)
 
         X_train_new, X_test_new = X_train[:, model.support_], X_test[:, model.support_]
-        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True)
+        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True, scoring=scoring)
         search.fit(X_train_new, y_train)
 
-        results.append(search.score(X_test_new, y_test))
+        if clf_name=='SVM':     preds_proba.append(search.decision_function(X_test_new)[0])
+        else:   preds_proba.append(search.predict_proba(X_test_new)[:,1][0])
+        preds.append(search.predict(X_test_new)[0])
     
-    return np.mean(results)
+    return roc_auc_score(y, np.array(preds_proba)), recall_score(y, np.array(preds))
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def pca(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
+def pca(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut(), scoring='accuracy'):
 
-    results = []
+    preds, preds_proba = [], []
     n_components = np.linspace(2, 20, 10, dtype=np.int32)
-    X = standard_scale(X_raw)
-    for train_idx, test_idx in cv_outer.split(X):
+    for train_idx, test_idx in cv_outer.split(X_raw):
 
         X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
+        X_train, X_test = norm_scale(X_train, X_test)
         cv_scores = {}
         for j, n_pc in enumerate(n_components):
             model = PCA(n_components=n_pc)
             X_train_new = model.fit_transform(X_train)
             X_test_new = model.transform(X_test)
-            cv_scores[j] = {'score': np.mean(cross_val_score(clf, X_train_new, y_train, scoring='accuracy', cv=cv)),
+            cv_scores[j] = {'score': np.mean(cross_val_score(clf, X_train_new, y_train, scoring=scoring, cv=cv)),
                             'X_train_new': X_train_new, 'X_test_new': X_test_new}
 
         best_pc_idx = np.argmax([i['score'] for i in cv_scores.values()])
         X_train_best, X_test_best = cv_scores[best_pc_idx]['X_train_new'], cv_scores[best_pc_idx]['X_test_new']
-        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True)
+        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True, scoring=scoring)
         search.fit(X_train_best, y_train)
 
-        results.append(search.score(X_test_best, y_test))
-
-    return np.mean(results)
+        if clf_name=='SVM':     preds_proba.append(search.decision_function(X_test_best)[0])
+        else:   preds_proba.append(search.predict_proba(X_test_best)[:,1][0])
+        preds.append(search.predict(X_test_best)[0])
+    
+    return roc_auc_score(y, np.array(preds_proba)), recall_score(y, np.array(preds))
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def chi2_filter(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
+def chi2_filter(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut(), scoring='accuracy'):
 
-    results = []
+    preds, preds_proba = [], []
     percentiles = [3, 6, 10, 15, 20, 30, 40]
-    X = standard_scale(X_raw) if clf_name != 'DT' else X_raw
-    for train_idx, test_idx in cv_outer.split(X):
+    for train_idx, test_idx in cv_outer.split(X_raw):
 
         X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
+        if clf_name != 'DT':    X_train, X_test = norm_scale(X_train, X_test)
         cv_scores = {}
         for j, pc in enumerate(percentiles):
             model = SelectPercentile(chi2, percentile=pc)
             X_train_new = model.fit_transform(X_train, y_train)
             X_test_new = model.transform(X_test)
-            cv_scores[j] = {'score': np.mean(cross_val_score(clf, X_train_new, y_train, scoring='accuracy', cv=cv)),
+            cv_scores[j] = {'score': np.mean(cross_val_score(clf, X_train_new, y_train, scoring=scoring, cv=cv)),
                             'X_train_new': X_train_new, 'X_test_new': X_test_new}
 
         best_pc_idx = np.argmax([i['score'] for i in cv_scores.values()])
         X_train_best, X_test_best = cv_scores[best_pc_idx]['X_train_new'], cv_scores[best_pc_idx]['X_test_new']
-        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True)
+        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True, scoring=scoring)
         search.fit(X_train_best, y_train)
 
-        results.append(search.score(X_test_best, y_test))
-
-    return np.mean(results)
+        if clf_name=='SVM':     preds_proba.append(search.decision_function(X_test_best)[0])
+        else:   preds_proba.append(search.predict_proba(X_test_best)[:,1][0])
+        preds.append(search.predict(X_test_best)[0])
+    
+    return roc_auc_score(y, np.array(preds_proba)), recall_score(y, np.array(preds))
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def thresholding(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut()):
+def thresholding(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut(), scoring='accuracy'):
 
-    results = []
+    preds, preds_proba = [], []
     thresholds = [f"{scale}*mean" for scale in [0.1, 0.5, 0.75, 1, 1.25, 1.5, 2]]
-    X = standard_scale(X_raw) if clf_name != 'DT' else X_raw
-    for train_idx, test_idx in cv_outer.split(X):
+    for train_idx, test_idx in cv_outer.split(X_raw):
         
-        X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
+        X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
+        if clf_name != 'DT':        X_train, X_test = norm_scale(X_train, X_test)
         if clf_name == 'SVM':       clf.kernel = 'linear'  # only linear kernel allows SVM to have coef_
         importances = 'auto'
         cv_scores = {}
         for j, th in enumerate(thresholds):
             model = SelectFromModel(clf.fit(X_train, y_train), prefit=True, importance_getter=importances, threshold=th)
             X_train_new, X_test_new = model.transform(X_train), model.transform(X_test)
-            cv_scores[j] = {'score': np.mean(cross_val_score(clf, X_train_new, y_train, scoring='accuracy', cv=cv)),
+            cv_scores[j] = {'score': np.mean(cross_val_score(clf, X_train_new, y_train, scoring=scoring, cv=cv)),
                             'X_train_new': X_train_new, 'X_test_new': X_test_new}
 
         best_pc_idx = np.argmax([i['score'] for i in cv_scores.values()])
         X_train_best, X_test_best = cv_scores[best_pc_idx]['X_train_new'], cv_scores[best_pc_idx]['X_test_new']
-        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True)
+        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True, scoring=scoring)
         search.fit(X_train_best, y_train)
 
-        results.append(search.score(X_test_best, y_test))
-
-    return np.mean(results)
+        if clf_name=='SVM':     preds_proba.append(search.decision_function(X_test_best)[0])
+        else:   preds_proba.append(search.predict_proba(X_test_best)[:,1][0])
+        preds.append(search.predict(X_test_best)[0])
+    
+    return roc_auc_score(y, np.array(preds_proba)), recall_score(y, np.array(preds))
 
 
 def handpick_features(drug, X_df):
@@ -514,3 +536,124 @@ def handpick_features(drug, X_df):
         return sorted(features_idx + [X_df.columns.get_loc('ND1')])
     elif drug == 'meth':
         return sorted(features_idx + [X_df.columns.get_loc('ND7')])
+
+
+def extract_net_info(NS_df, cate_mappings_NS, ND_df, cate_mappings_ND):
+
+    confide_vars = list(NS_df.columns)
+    drugnet_vars = list(ND_df.columns)
+
+    alters_NS_dict = {}
+    alters_NS = list(set([v[-1] for v in confide_vars if v[-1].isalpha() and v[-4:] != 'TEXT']))  # all NS alters: ['A','B','C',...]
+    for a in alters_NS:
+        alters_NS_dict[a] = [v for v in confide_vars if v[-1] == a]
+
+    NSX5_vars = [f'NSX5{a}' for a in alters_NS]
+    for v in NSX5_vars:
+        col = NS_df[v]
+        for idx, i in enumerate(col):
+            if 0 <= i <= 14:    NS_df.at[idx, v] = 0  # children
+            elif 15 <= i <= 24: NS_df.at[idx, v] = 1  # youth
+            elif 25 <= i <= 64: NS_df.at[idx, v] = 2  # adult
+            elif i >= 65:       NS_df.at[idx, v] = 3  # senior
+
+    relatio_vars = [v for v in confide_vars if v[:5] == 'NSX13' and v[5:] not in ['1_2', '2_3', '3_4']]
+    NS_features_list = []
+    for index, row in NS_df.iterrows():  # for each row i.e., participant
+        n_nodes = 0
+        net_features = {v[:-1]: {cate: 0 for cate in cate_mappings_NS[v].values()} for v in cate_mappings_NS.keys()}  # nested dict, each key is a variable for the alters
+        
+        for a in alters_NS:  # for each alter
+            alter_info = [row[v] for v in alters_NS_dict[a]]
+            if not np.isnan(alter_info).all():  # node exists if info of alter is not all nan
+                n_nodes += 1
+                for v, val in zip(alters_NS_dict[a], alter_info):  # for each piece of info from an alter
+                    if not np.isnan(val):
+                        net_features[v[:-1]][cate_mappings_NS[v][val]] += 1
+
+        NS_features_list.append(net_features)
+        NS_features_list[index]['n_nodes_NS'] = n_nodes
+
+        relatio_info = [row[v] for v in relatio_vars]
+        n_edges = relatio_info.count(2)  # categorical value 2 means person x knows person y --> edge (x,y) exists
+        NS_features_list[index]['n_edges_NS'] = n_edges
+
+    #----------------------------------------------------------------------------------------------------------------------------------
+
+    alters_ND_dict = {}
+    alters_ND = list(set([v[-1] for v in drugnet_vars if v[-1].isalpha() and v[-4:] != 'TEXT']))  # all ND alters: ['J','K','L',...]
+    for a in alters_ND:
+        alters_ND_dict[a] = [v for v in drugnet_vars if v[-1] == a]
+
+    NDX2_vars = [f'NDX2{a}' for a in alters_ND]
+    for v in NDX2_vars:
+        col = ND_df[v]
+        for idx, i in enumerate(col):
+            if 0 <= i <= 14:    ND_df.at[idx, v] = 0  # children
+            elif 15 <= i <= 24: ND_df.at[idx, v] = 1  # youth
+            elif 25 <= i <= 64: ND_df.at[idx, v] = 2  # adult
+            elif i >= 65:       ND_df.at[idx, v] = 3  # senior
+
+    relatio_vars = [v for v in drugnet_vars if v[:5] == 'NDX15' and v[5:] not in ['1_2', '2_3', '3_4']]
+    ND_features_list = []
+    for index, row in ND_df.iterrows():  # for each row i.e., participant
+        n_nodes = 0
+        net_features = {v[:-1]: {cate: 0 for cate in cate_mappings_ND[v].values()} for v in cate_mappings_ND.keys()}  # nested dict, each key is a variable for the alters
+        
+        for a in alters_ND:  # for each alter
+            alter_info = [row[v] for v in alters_ND_dict[a]]
+            if not np.isnan(alter_info).all():  # node exists if info of alter is not all nan
+                n_nodes += 1
+                for v, val in zip(alters_ND_dict[a], alter_info):  # for each piece of info from an alter
+                    if not np.isnan(val):
+                        net_features[v[:-1]][cate_mappings_ND[v][val]] += 1
+
+        ND_features_list.append(net_features)
+        ND_features_list[index]['n_nodes_ND'] = n_nodes
+
+        relatio_info = [row[v] for v in relatio_vars]
+        n_edges = relatio_info.count(2)  # categorical value 2 means person x knows person y --> edge (x,y) exists
+        ND_features_list[index]['n_edges_ND'] = n_edges
+
+    #----------------------------------------------------------------------------------------------------------------------------------
+    return NS_features_list, ND_features_list
+
+
+
+class OrdinalClassifier():
+
+    def __init__(self, clf):
+        self.clf = clf
+        self.clfs = {}
+
+    def fit(self, X, y):
+        self.unique_class = np.sort(np.unique(y))
+        if self.unique_class.shape[0] > 2:
+            for i in range(self.unique_class.shape[0]-1):
+                # for each k - 1 ordinal value we fit a binary classification problem
+                binary_y = (y > self.unique_class[i]).astype(np.uint8)
+                clf = clone(self.clf)
+                clf.fit(X, binary_y)
+                self.clfs[i] = clf
+
+    def predict_proba(self, X):
+        clfs_predict = {k: self.clfs[k].predict_proba(X) for k in self.clfs}
+        predicted = []
+        for i, y in enumerate(self.unique_class):
+            if i == 0:
+                # V1 = 1 - Pr(y > V1)
+                predicted.append(1 - clfs_predict[i][:,1])
+            elif i in clfs_predict:
+                # Vi = Pr(y > Vi-1) - Pr(y > Vi)
+                 predicted.append(clfs_predict[i-1][:,1] - clfs_predict[i][:,1])
+            else:
+                # Vk = Pr(y > Vk-1)
+                predicted.append(clfs_predict[i-1][:,1])
+        return np.vstack(predicted).T
+
+    def predict(self, X):
+        return np.argmax(self.predict_proba(X), axis=1)
+
+    def score(self, X, y, sample_weight=None):
+        _, indexed_y = np.unique(y, return_inverse=True)
+        return accuracy_score(indexed_y, self.predict(X), sample_weight=sample_weight)

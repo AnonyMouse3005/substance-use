@@ -1,0 +1,154 @@
+SC1: Years lived in current community: None
+SC3: How satisfied with living in current community: {'1': 'Very dissatisfied', '6': 'Somewhat dissatisfied', '7': 'Neutral', '8': 'Somewhat satisfied', '9': 'Very satisfied'}
+SC4: Think whether will still be living in current community 2 years into the future: {'1': 'No', '2': 'Yes'}
+SC5: How often felt like belong in community in the past 6 months: {'1': 'Never', '2': 'Rarely', '3': 'Sometimes', '4': 'Often', '5': 'Always'}
+SC6: How often felt out of place in community in the past 6 months: {'1': 'Never', '4': 'Rarely', '5': 'Sometimes', '6': 'Often', '7': 'Always'}
+SC8: Whether there is at least one person to confide in: {'1': 'No', '2': 'Yes'}
+SC9: Whether there is someone to receive emotional support from: {'1': 'No', '3': 'Yes'}
+SC13: Whether there is someone who would give financial assistance: {'1': 'No', '3': 'Yes'}
+DM1: Age: None
+TB1: Whether regularly smoked cigarettes before: {'1': 'No', '2': 'Yes'}
+TB2: How old first time smoked a cigarette: {'-1': 'Never smoked', '0': 'Children [0-14]', '1': 'Youth [15-24]', '2': 'Adult [25-64]', '3': 'Senior (>65)'}
+TB3: Whether smoked cigarettes in the past 6 months: {'1': 'No', '6': 'Yes'}
+TB4: How many cigarettes usually smoke in a day: {'0': 'Never smoked', '1': 'Not at all', '4': 'Less than 1 cigarette a day', '5': '1-5 cigarettes a day', '6': 'Half a pack a day', '7': 'A pack or more a day'}
+TB5: Whether vaped or used e-cigarettes with nicotine before: {'1': 'No', '2': 'Yes'}
+TB6: How old first time vaped or used e-cigarettes with nicotine: {'-1': 'Never smoked', '0': 'Children [0-14]', '1': 'Youth [15-24]', '2': 'Adult [25-64]', '3': 'Senior (>65)'}
+TB7: Whether vaped or used e-cigarettes with nicotine in the past 6 months: {'1': 'No', '2': 'Yes'}
+TB8: How many days vaped or used e-cigarettes with nicotine in the past 30 days: {'0': 'Never smoked', '1': '0 days', '2': '1-2 days', '3': '3-9 days', '4': '10-29 days', '5': 'All 30 days'}
+TB9: Whether regularly used smokeless tobacco before: {'1': 'No', '2': 'Yes'}
+TB10: How old first time used smokeless tobacco: {'-1': 'Never smoked', '0': 'Children [0-14]', '1': 'Youth [15-24]', '2': 'Adult [25-64]', '3': 'Senior (>65)'}
+TB11: Whether used smokeless tobacco in the past 6 months: {'1': 'No', '2': 'Yes'}
+TB12: How many days used smokeless tobacco in the past 30 days: {'0': 'Never smoked', '1': '0 days', '2': '1-2 days', '3': '3-9 days', '4': '10-29 days', '5': 'All 30 days'}
+AL1: How old first started drinking, including sips: {'-2': "Don't know", '-1': 'Never drank', '0': 'Children [0-14]', '1': 'Youth [15-24]', '2': 'Adult [25-64]', '3': 'Senior (>65)'}
+AL2: How old first started drinking, NOT including sips: {'-2': "Don't know", '-1': 'Never drank', '0': 'Children [0-14]', '1': 'Youth [15-24]', '2': 'Adult [25-64]', '3': 'Senior (>65)'}
+AL3: How old first started drinking to the point of intoxication: {'-2': "Don't know", '-1': 'Never drank', '0': 'Children [0-14]', '1': 'Youth [15-24]', '2': 'Adult [25-64]', '3': 'Senior (>65)'}
+AL4: Whether drank any alcohol in the past 6 months: {'1': 'No', '2': 'Yes'}
+AL5: How often drank alcohol in the past 30 days: {'0': 'Never drank before', '1': 'Never', '9': 'Less than once a month', '10': 'Once a month', '11': '2-3 days per month', '12': 'Once a week', '13': '2-3 days per week', '14': '4-6 days per week', '15': 'Everyday'}
+AL6A: How often had >= 5 (males) or >= 4 (females) alcoholic drinks in one sitting in the past 30 days: {'0': 'Never drank before', '1': 'Never', '11': 'Less than once a month', '12': 'Once a month', '13': '2-3 days per month', '14': 'Once a week', '15': '2-3 days per week', '16': '4-6 days per week', '17': 'Everyday'}
+ID1: Whether used a needle to inject a drugs before: {'1': 'No', '2': 'Yes'}
+ID2: How old first injected any drug, other than those prescribed: {'-1': 'Never injected', '0': 'Children [0-14]', '1': 'Youth [15-24]', '2': 'Adult [25-64]', '3': 'Senior (>65)'}
+ID3: How often injected any drug in the past 6 months: {'0': 'Never injected', '1': 'Never', '11': 'Less than once a month', '12': 'Once a month', '13': 'Once a week', '14': '2-6 times a week', '15': 'One time per day', '16': '2-3 times per day', '17': '4 or more times per day'}
+ID4: How often injected heroin in the past 6 months: {'0': 'Never injected', '1': 'Never', '11': 'Less than once a month', '12': 'Once a month', '13': 'Once a week', '14': '2-6 times a week', '15': 'One time per day', '16': '2-3 times per day', '17': '4 or more times per day'}
+ID5: How often injected opioids in the past 6 months: {'0': 'Never injected', '1': 'Never', '11': 'Less than once a month', '12': 'Once a month', '13': 'Once a week', '14': '2-6 times a week', '15': 'One time per day', '16': '2-3 times per day', '17': '4 or more times per day'}
+ID6: How often injected meth in the past 6 months: {'0': 'Never injected', '1': 'Never', '11': 'Less than once a month', '12': 'Once a month', '13': 'Once a week', '14': '2-6 times a week', '15': 'One time per day', '16': '2-3 times per day', '17': '4 or more times per day'}
+ID7: How often injected cocaine in the past 6 months: {'0': 'Never injected', '1': 'Never', '11': 'Less than once a month', '12': 'Once a month', '13': 'Once a week', '14': '2-6 times a week', '15': 'One time per day', '16': '2-3 times per day', '17': '4 or more times per day'}
+ID8: How often injected heroin and cocaine speedball in the past 6 months: {'0': 'Never injected', '1': 'Never', '11': 'Less than once a month', '12': 'Once a month', '13': 'Once a week', '14': '2-6 times a week', '15': 'One time per day', '16': '2-3 times per day', '17': '4 or more times per day'}
+ID9: How often injected heroin and meth speedball in the past 6 months: {'0': 'Never injected', '1': 'Never', '11': 'Less than once a month', '12': 'Once a month', '13': 'Once a week', '14': '2-6 times a week', '15': 'One time per day', '16': '2-3 times per day', '17': '4 or more times per day'}
+ID10: How often injected crack cocaine in the past 6 months: {'0': 'Never injected', '1': 'Never', '11': 'Less than once a month', '12': 'Once a month', '13': 'Once a week', '14': '2-6 times a week', '15': 'One time per day', '16': '2-3 times per day', '17': '4 or more times per day'}
+ID11: How often injected buprenorphine in the past 6 months: {'0': 'Never injected', '1': 'Never', '11': 'Less than once a month', '12': 'Once a month', '13': 'Once a week', '14': '2-6 times a week', '15': 'One time per day', '16': '2-3 times per day', '17': '4 or more times per day'}
+ID12: How often injected something else in the past 6 months: {'0': 'Never injected', '1': 'Never', '11': 'Less than once a month', '12': 'Once a month', '13': 'Once a week', '14': '2-6 times a week', '15': 'One time per day', '16': '2-3 times per day', '17': '4 or more times per day'}
+ID15: How often used a new, sterile needle during injection in the past 6 months: {'-1': 'Never injected', '1': 'Never', '4': 'Rarely', '5': 'About half the time', '6': 'Most of the time', '7': 'Always'}
+ID16: How often used needles that someone else had already injected with during injection in the past 6 months: {'-1': 'Never injected', '1': 'Never', '4': 'Rarely', '5': 'About half the time', '6': 'Most of the time', '7': 'Always'}
+ID17: Whether injected with someone i.e., shared drugs and/or equipment during injection in the past 6 months: {'-1': 'Never injected', '1': 'No', '2': 'Yes'}
+ID18: Whether used a new sterile needle to inject during the last time injected with someone: {'-1': 'Never injected', '2': 'No', '3': 'Yes'}
+ID19: Whether used a needle after anyone else had already injected with it: {'-1': 'Never injected', '1': 'No', '2': 'Yes'}
+ID20: Whether with one person or with more than one person during the last time injected with someone: {'-1': 'Never injected', '2': 'One person', '3': 'More than one person'}
+ND1: How often used marijuana in the past 6 months: {'1': 'Never', '9': 'Less than once a month', '10': 'Once a month', '11': 'Once a week', '12': '2-6 times a week', '13': 'One time per day', '14': '2-3 times per day', '15': '4 or more times per day'}
+ND2: How old first used marijuana: {'-1': 'Never used marijuana', '0': 'Children [0-14]', '1': 'Youth [15-24]', '2': 'Adult [25-64]', '3': 'Senior (>65)'}
+ND3: How often used cocaine in the past 6 months: {'1': 'Never', '2': 'Less than once a month', '3': 'Once a month', '4': 'Once a week', '5': '2-6 times a week', '6': 'One time per day', '7': '2-3 times per day', '8': '4 or more times per day'}
+ND4: How often used Ecstasy/MDMA in the past 6 months: {'1': 'Never', '2': 'Less than once a month', '3': 'Once a month', '4': 'Once a week', '5': '2-6 times a week', '6': 'One time per day', '7': '2-3 times per day', '8': '4 or more times per day'}
+ND5: How often used PCP/angel dust in the past 6 months: {'1': 'Never', '2': 'Less than once a month', '3': 'Once a month', '4': 'Once a week', '5': '2-6 times a week', '6': 'One time per day', '7': '2-3 times per day', '8': '4 or more times per day'}
+ND6: How often used amphetamines in the past 6 months: {'1': 'Never', '2': 'Less than once a month', '3': 'Once a month', '4': 'Once a week', '5': '2-6 times a week', '6': 'One time per day', '7': '2-3 times per day', '8': '4 or more times per day'}
+ND7: How often used meth in the past 6 months: {'1': 'Never', '2': 'Less than once a month', '3': 'Once a month', '4': 'Once a week', '5': '2-6 times a week', '6': 'One time per day', '7': '2-3 times per day', '8': '4 or more times per day'}
+ND8: How often used barbiturates in the past 6 months: {'1': 'Never', '2': 'Less than once a month', '3': 'Once a month', '4': 'Once a week', '5': '2-6 times a week', '6': 'One time per day', '7': '2-3 times per day', '8': '4 or more times per day'}
+ND9: How often used benzodiazepines in the past 6 months: {'1': 'Never', '2': 'Less than once a month', '3': 'Once a month', '4': 'Once a week', '5': '2-6 times a week', '6': 'One time per day', '7': '2-3 times per day', '8': '4 or more times per day'}
+ND10: How often used opiates/opioids in the past 6 months: {'1': 'Never', '2': 'Less than once a month', '3': 'Once a month', '4': 'Once a week', '5': '2-6 times a week', '6': 'One time per day', '7': '2-3 times per day', '8': '4 or more times per day'}
+ND11: How often used heroin in the past 6 months: {'1': 'Never', '2': 'Less than once a month', '3': 'Once a month', '4': 'Once a week', '5': '2-6 times a week', '6': 'One time per day', '7': '2-3 times per day', '8': '4 or more times per day'}
+ND12: How often used something else in the past 6 months: {'1': 'Never', '2': 'Less than once a month', '3': 'Once a month', '4': 'Once a week', '5': '2-6 times a week', '6': 'One time per day', '7': '2-3 times per day', '8': '4 or more times per day'}
+DA1_1: How easy to get marijuana: {'1': 'Very hard', '2': 'Hard', '3': 'Neither hard nor easy', '4': 'Easy', '5': 'Very easy', '6': "Don't know"}
+DA1_2: How easy to get meth: {'1': 'Very hard', '2': 'Hard', '3': 'Neither hard nor easy', '4': 'Easy', '5': 'Very easy', '6': "Don't know"}
+DA1_3: How easy to get cocaine: {'1': 'Very hard', '2': 'Hard', '3': 'Neither hard nor easy', '4': 'Easy', '5': 'Very easy', '6': "Don't know"}
+DA1_4: How easy to get heroin: {'1': 'Very hard', '2': 'Hard', '3': 'Neither hard nor easy', '4': 'Easy', '5': 'Very easy', '6': "Don't know"}
+DA1_5: How easy to get opiods/opiates: {'1': 'Very hard', '2': 'Hard', '3': 'Neither hard nor easy', '4': 'Easy', '5': 'Very easy', '6': "Don't know"}
+DA1_6: How easy to get benzodiazepines: {'1': 'Very hard', '2': 'Hard', '3': 'Neither hard nor easy', '4': 'Easy', '5': 'Very easy', '6': "Don't know"}
+DA1_7: How easy to get Ecstasy (MDMA): {'1': 'Very hard', '2': 'Hard', '3': 'Neither hard nor easy', '4': 'Easy', '5': 'Very easy', '6': "Don't know"}
+DA2_1: Availability of marijuana: {'1': 'Very hard', '2': 'Hard', '3': 'Neither hard nor easy', '4': 'Easy', '5': 'Very easy', '8': "Don't know"}
+DA2_2: Availability of meth: {'1': 'Very hard', '2': 'Hard', '3': 'Neither hard nor easy', '4': 'Easy', '5': 'Very easy', '8': "Don't know"}
+DA2_3: Availability of cocaine: {'1': 'Very hard', '2': 'Hard', '3': 'Neither hard nor easy', '4': 'Easy', '5': 'Very easy', '8': "Don't know"}
+DA2_4: Availability of heroin: {'1': 'Very hard', '2': 'Hard', '3': 'Neither hard nor easy', '4': 'Easy', '5': 'Very easy', '8': "Don't know"}
+DA2_5: Availability of opiods/opiates: {'1': 'Very hard', '2': 'Hard', '3': 'Neither hard nor easy', '4': 'Easy', '5': 'Very easy', '8': "Don't know"}
+DA2_6: Availability of benzodiazepines: {'1': 'Very hard', '2': 'Hard', '3': 'Neither hard nor easy', '4': 'Easy', '5': 'Very easy', '8': "Don't know"}
+DA2_7: Availability of Ecstasy (MDMA): {'1': 'Very hard', '2': 'Hard', '3': 'Neither hard nor easy', '4': 'Easy', '5': 'Very easy', '8': "Don't know"}
+OD1: Whether suffered a drug overdose before: {'1': 'No', '2': 'Yes'}
+OD2: Whether suffered a drug overdose in the past 6 months: {'0': 'Never suffered drug overdose', '1': 'No', '2': 'Yes'}
+OD6: Whether know anyone who has suffered a drug overdose: {'2': 'No', '4': 'Yes'}
+OD7: Whether know anyone who has suffered a drug overdose in the past 6 months: {'0': "Don't know anyone suffered drug overdose", '1': 'No', '3': 'Yes'}
+OD8: Whether seen someone overdose on drugs before: {'0': "Don't know anyone suffered drug overdose", '1': 'No', '2': 'Yes'}
+OD9: Whether seen someone overdose on drugs in the past 6 months: {'0': "Don't know anyone suffered drug overdose", '1': 'No', '2': 'Yes'}
+OD10: Whether know anyone who has died from a drug overdose: {'0': "Don't know anyone suffered drug overdose", '1': 'No', '2': 'Yes'}
+OD11: Whether know anyone who has died from a drug overdose in the past 6 months: {'0': "Don't know anyone suffered drug overdose", '1': 'No', '2': 'Yes'}
+TX1_1: Whether been to outpatient program before: {'1': 'No', '2': 'Yes'}
+TX1_2: Whether been to residential program before: {'1': 'No', '2': 'Yes'}
+TX1_3: Whether been to Detox program before: {'1': 'No', '2': 'Yes'}
+TX1_4: Whether been to Methadone/Suboxone treatment program before: {'1': 'No', '2': 'Yes'}
+TX1_5: Whether been to 12-step alcohol program before: {'1': 'No', '2': 'Yes'}
+TX1_6: Whether been to 12-step drug program before: {'1': 'No', '2': 'Yes'}
+TX1_7: Whether been to other not listed program before: {'1': 'No', '2': 'Yes'}
+TX2_1: Whether currently attending/enrolled in outpatient program before: {'1': 'No', '2': 'Yes'}
+TX2_2: Whether currently attending/enrolled in residential program before: {'1': 'No', '2': 'Yes'}
+TX2_3: Whether currently attending/enrolled in Detox program before: {'1': 'No', '2': 'Yes'}
+TX2_4: Whether currently attending/enrolled in Methadone/Suboxone treatment program before: {'1': 'No', '2': 'Yes'}
+TX2_5: Whether currently attending/enrolled in 12-step alcohol program before: {'1': 'No', '2': 'Yes'}
+TX2_6: Whether currently attending/enrolled in 12-step drug program before: {'1': 'No', '2': 'Yes'}
+TX2_7: Whether currently attending/enrolled in other not listed program before: {'1': 'No', '2': 'Yes'}
+AC1A: How often a parent or other adult in the household swore at, insulted, put down, or humiliated them prior to 18th birthday: {'1': 'Never', '3': 'Once or twice', '4': 'Sometimes', '5': 'Often', '6': 'Very often'}
+AC1B: How often a parent or other adult in the household acted in a way that made them afraid that they might be physically hurt prior to 18th birthday: {'1': 'Never', '3': 'Once or twice', '4': 'Sometimes', '5': 'Often', '6': 'Very often'}
+AC2A: How often a parent or other adult in the household pushed, grabbed, slapped, or threw sth at them prior to 18th birthday: {'1': 'Never', '3': 'Once or twice', '4': 'Sometimes', '5': 'Often', '6': 'Very often'}
+AC2B: How often a parent or other adult in the household hit them so hard that they had marks or were injured prior to 18th birthday: {'1': 'Never', '3': 'Once or twice', '4': 'Sometimes', '5': 'Often', '6': 'Very often'}
+AC3A: Whether an adult or person at least 5 years older than them ever touched or fondled them in a sexual way prior to 18th birthday: {'1': 'No', '2': 'Yes'}
+AC3B: Whether an adult ever had them touch his/her body in a sexual way prior to 18th birthday: {'1': 'No', '2': 'Yes'}
+AC3C: Whether an adult ever attempted to have oral, anal, or vaginal intercourse with them prior to 18th birthday: {'1': 'No', '2': 'Yes'}
+AC3D: Whether an adult ever actually had oral, anal, or vaginal intercourse with them prior to 18th birthday: {'1': 'No', '2': 'Yes'}
+AC4A: How true the following statement prior to 18th birthday: they felt that no one in their family loved them or thought they were important or special: {'7': 'Never true', '8': 'Rarely true', '9': 'Sometimes true', '10': 'Often true', '11': 'Very often true'}
+AC4B: How true the following statement prior to 18th birthday: they felt that their family did not look out for each other, feel close to each other, or support each other: {'1': 'Never true', '7': 'Rarely true', '8': 'Sometimes true', '9': 'Often true', '10': 'Very often true'}
+AC5A: How true the following statement prior to 18th birthday: they felt that they did not have enough to eat, had to wear dirty clothes, and had no one to protect them: {'2': 'Never true', '7': 'Rarely true', '8': 'Sometimes true', '9': 'Often true', '10': 'Very often true'}
+AC5B: How true the following statement prior to 18th birthday: they felt that their parents were too drunk or high to take care of them or take them to the doctor if needed: {'1': 'Never true', '7': 'Rarely true', '8': 'Sometimes true', '9': 'Often true', '10': 'Very often true'}
+AC6: Whether a parent/guardian ever lost to them through divorce, abandonment, or other reason prior to 18th birthday: {'1': 'No', '2': 'Yes'}
+AC7A: How often their mother or stepmother or female guardian was pushed, grabbed, slapped, or had something thrown at her prior to 18th birthday: {'1': 'Never', '3': 'Once or twice', '4': 'Sometimes', '5': 'Often', '6': 'Very often'}
+AC7B: How often their mother or stepmother or female guardian was kicked, bitten, hit with a fist, or hit with sth hard prior to 18th birthday: {'3': 'Never', '4': 'Once or twice', '5': 'Sometimes', '6': 'Often', '7': 'Very often'}
+AC7C: Whether their mother or stepmother or female guardian was ever repeatedly hit over at least a few minutes or threatened with a gun or knife prior to 18th birthday: {'1': 'No', '2': 'Yes'}
+AC8A: Whether lived with anyone who was an alcoholic prior to 18th birthday: {'1': 'No', '2': 'Yes'}
+AC8B: Whether lived with anyone who used street drugs prior to 18th birthday: {'1': 'No', '2': 'Yes'}
+AC9A: Whether a household member depressed or mentally ill prior to 18th birthday: {'1': 'No', '2': 'Yes'}
+AC9B: Whether a household member attempted suicide prior to 18th birthday: {'1': 'No', '2': 'Yes'}
+AC10: Whether a household member went to prison prior to 18th birthday: {'1': 'No', '2': 'Yes'}
+AC11: How often other kids, including siblings threatened, picked on or insulted them prior to 18th birthday: {'1': 'Never', '4': 'Once or twice', '5': 'Sometimes', '6': 'Often', '7': 'Very often'}
+AC12: How often they felt lonely or rejected prior to 18th birthday: {'1': 'Never', '4': 'Once or twice', '5': 'Sometimes', '6': 'Often', '7': 'Very often'}
+AC13: Whether lived for 2 or more years in a neighborhood that was dangerous prior to 18th birthday: {'1': 'No', '2': 'Yes'}
+AC14: Whether there was a period of 2 or more years their family was very poor prior to 18th birthday: {'1': 'No', '2': 'Yes'}
+CJ1: How concerned using drugs: {'1': 'Not at all concerned', '2': 'Slightly concerned', '3': 'Somewhat concerned', '4': 'Moderately concerned', '5': 'Extremely concerned'}
+CJ2: How concerned buying/selling drugs: {'1': 'Not at all concerned', '2': 'Slightly concerned', '3': 'Somewhat concerned', '4': 'Moderately concerned', '5': 'Extremely concerned'}
+CJ3: Whether been incarcerated before: {'1': 'No', '2': 'Yes'}
+CJ4: Whether been incarcerated in the past 12 months: {'-1': 'Never in jail', '1': 'No', '2': 'Yes'}
+CJ5: Length of longest incarceration: {'-1': 'Never in jail', '1': 'Less than 6 months', '2': 'More than 6 months, less than a year', '3': 'More than a year, less than 2', '4': '2-5 years', '5': '5-10 years', '6': 'More than 10 years'}
+CJ6: Whether any of incarcerations been drug related: {'-1': 'Never in jail', '1': 'No', '2': 'Yes'}
+CJ7: Whether received any drug treatment while incarcerated before: {'-1': 'Never in jail', '1': 'No', '2': 'Yes'}
+DM9: Highest level of education completed: {'1': 'Less than high school', '2': 'Completed high school or GED', '3': 'Some college', '4': 'Completed 2-year degree', '5': 'Completed 4-year degree', '6': 'Graduate or professional degree'}
+DM14: How often attend religious services: {'1': 'Never', '9': 'Less than once a year', '10': 'About once a year', '11': 'Several times a year', '12': 'About once a month', '13': 'Nearly every week', '14': 'Once a week', '15': 'Several times a week'}
+DM15: How much religious beliefs influence daily life in general: {'1': 'N/A, not religious or spiritual', '7': 'Not at all', '8': 'A little', '9': 'Some', '10': 'Quite a bit', '11': 'Very much'}
+DM17: Whether been homeless before: {'1': 'No', '2': 'Yes'}
+DM23: Total household income in last 12 months: {'1': 'Less than $5k', '12': '$5k-$10k', '13': '$10k-$20k', '14': '$20k-$30k', '15': '$30k-$40k', '16': '$40k-$50k', '17': '$50k-$60k', '18': '$60k-$70k', '19': '$70k-$80k', '20': '$80k-$90k', '21': '$90k-$100k', '22': 'More than $100k'}
+DM8_1.0: Current marital status: Married
+DM8_2.0: Current marital status: Living together
+DM8_3.0: Current marital status: Separated
+DM8_4.0: Current marital status: Divorced
+DM8_5.0: Current marital status: Widowed
+DM8_6.0: Current marital status: Never married
+DM10_1.0: Current employment status: Employed full-time
+DM10_2.0: Current employment status: Employed part-time
+DM10_3.0: Current employment status: A homemaker
+DM10_4.0: Current employment status: A full-time student
+DM10_5.0: Current employment status: Retired
+DM10_6.0: Current employment status: Disability - temporary
+DM10_7.0: Current employment status: Disability - permanent
+DM10_8.0: Current employment status: Unemployed
+DM10_9.0: Current employment status: Other
+DM12_1.0: Religion: Protestant
+DM12_2.0: Religion: Catholic
+DM12_4.0: Religion: Muslim
+DM12_5.0: Religion: No religion
+DM12_6.0: Religion: Other
+DM13_-1.0: Which type of Protestant: Non-Protestant
+DM13_2.0: Which type of Protestant: Fundamentalists Protestant
+DM13_4.0: Which type of Protestant: Liberal Protestant
+DM13_5.0: Which type of Protestant: Other

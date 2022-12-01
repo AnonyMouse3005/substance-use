@@ -235,8 +235,9 @@ def run_nonnetwork():
             dep_var_full = []
             for a, b in pred_var:
                 if not np.isnan(a) and not np.isnan(b):
-                    y = 0 if a <= b else 1
-                    # y = a - b
+                    # y = 1 if b - a > 0 else 0
+                    y = 1 if b - a > 1 else 0
+                    # y = b - a
                     dep_var_full.append(y)
                 else:   dep_var_full.append(np.nan)
 
