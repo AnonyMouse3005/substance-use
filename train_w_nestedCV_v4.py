@@ -437,15 +437,15 @@ if __name__ == '__main__':
         'LG_EN': {'names': ['C'], 'range': [(0.001, 1000)], 'bitwidth': 8},
         'DT': {'names': ['max_depth','min_samples_split'], 'range': [(3, 10), (5,15)], 'bitwidth': 4},
         'SVM': {'names': ['gamma','C'], 'range': [(0.0001, 100), (0.001, 1000)], 'bitwidth': 8},
-        'RF': dict(max_depth=[3,5,7,10,None]),
-        'GB': dict(max_depth=[3,5,7,10]),
     }
     clf_param_grid = {
         'LG_L1': dict(C=np.logspace(-3,3,num=7)),
         'LG_L2': dict(C=np.logspace(-3,3,num=7)),
         'LG_EN': dict(C=np.logspace(-3,3,num=7)),
         'DT': dict(max_depth=range(3,11), min_samples_split=[5, 10, 15]),
-        'SVM': dict(gamma=np.logspace(-4,2,num=7), C=np.logspace(-3,3,num=7))
+        'SVM': dict(gamma=np.logspace(-4,2,num=7), C=np.logspace(-3,3,num=7)),
+        'RF': dict(max_depth=[3,5,7,10,None]),
+        'GB': dict(max_depth=[3,5,7,10]),
     }
     clf_dict = {clf_name: clf for clf_name, clf in clf_choices.items() if clf_name in clf_list}
     cv_inner = int(goals["cv_inner"])
