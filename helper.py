@@ -380,7 +380,8 @@ def genetic_alg_mod(clf, clf_name, hparams, X_raw, y, cv=10, cv_outer=LeaveOneOu
         n_splits = cv_outer.n_splits if hasattr(cv_outer, 'n_splits') else X_raw.shape[0]
         print(f'At fold {i}/{n_splits} (outer CV)')
         X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
-        if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
+        # if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
+        X_train, X_test = norm_scale(X_train, X_test)
         model = GeneticSelectionCV_mod(
             clf, cv=cv, verbose=0,
             scoring=scoring, max_features=None,
@@ -419,7 +420,8 @@ def genetic_alg(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneO
         n_splits = cv_outer.n_splits if hasattr(cv_outer, 'n_splits') else X_raw.shape[0]
         print(f'At fold {i}/{n_splits} (outer CV)')
         X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
-        if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
+        # if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
+        X_train, X_test = norm_scale(X_train, X_test)
         model = GeneticSelectionCV(
             clf, cv=cv, verbose=0,
             scoring=scoring, max_features=None,
@@ -479,7 +481,8 @@ def chi2_filter(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneO
     for train_idx, test_idx in cv_outer.split(X_raw):
 
         X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
-        if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
+        # if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
+        X_train, X_test = norm_scale(X_train, X_test)
         cv_scores = {}
         for j, pc in enumerate(percentiles):
             model = SelectPercentile(chi2, percentile=pc)
@@ -508,7 +511,8 @@ def thresholding(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOne
     for train_idx, test_idx in cv_outer.split(X_raw):
         
         X_train, y_train, X_test, y_test = X_raw[train_idx], y[train_idx], X_raw[test_idx], y[test_idx]
-        if clf_name not in ['DT','RF','GB']:        X_train, X_test = norm_scale(X_train, X_test)
+        # if clf_name not in ['DT','RF']:        X_train, X_test = norm_scale(X_train, X_test)
+        X_train, X_test = norm_scale(X_train, X_test)
         if clf_name == 'SVM':       clf.kernel = 'linear'  # only linear kernel allows SVM to have coef_
         importances = 'auto'
         cv_scores = {}

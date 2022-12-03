@@ -145,7 +145,7 @@ def run_nonnetwork():
 
             print(f'At Cohort {cohort}, {drug} using non-network features')
 
-            X_imp, y, Xenc_df = case_var_delete_v3(cohort, drug)  # df with dropped rows and columns if too much missingness
+            X_imp, y, Xenc_df, _, _ = case_var_delete_v3(cohort, drug)  # df with dropped rows and columns if too much missingness
 
             scores_dict[f'{cohort}-{drug}-fgroup'] = []
             for clf_name in clf_dict.keys():
@@ -171,7 +171,8 @@ def run_nonnetwork():
                         preds, preds_proba = [], []
                         for train_idx, test_idx in cv_outer.split(X):
                             X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
-                            if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
+                            # if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
+                            X_train, X_test = norm_scale(X_train, X_test)
                             search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=5, scoring=scoring)
                             search.fit(X_train, y_train)
                             if clf_name=='SVM':     preds_proba.append(search.decision_function(X_test)[0])
@@ -196,7 +197,7 @@ def run_nonnetwork():
 
             scores_dict[f'{cohort}-{drug}-baseline'] = [acc_baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
-    pd.DataFrame.from_dict(dict(sorted(scores_dict.items()))).to_csv(f'results/nestedCV_scores_nonnetwork_{goals_code}.csv', index=False)
+    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nestedCV_scores_nonnetwork_{goals_code}.csv', index=False)
 
 
 def run_network():
@@ -239,7 +240,8 @@ def run_network():
                         preds, preds_proba = [], []
                         for train_idx, test_idx in cv_outer.split(X):
                             X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
-                            if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
+                            # if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
+                            X_train, X_test = norm_scale(X_train, X_test)
                             search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=5, scoring=scoring)
                             search.fit(X_train, y_train)
                             if clf_name=='SVM':     preds_proba.append(search.decision_function(X_test)[0])
@@ -264,7 +266,7 @@ def run_network():
 
             scores_dict[f'{cohort}-{drug}-baseline'] = [acc_baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
-    pd.DataFrame.from_dict(dict(sorted(scores_dict.items()))).to_csv(f'results/nestedCV_scores_network_{goals_code}.csv', index=False)
+    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nestedCV_scores_network_{goals_code}.csv', index=False)
 
 
 def run_netnonnetwork():
@@ -321,7 +323,8 @@ def run_netnonnetwork():
                         preds, preds_proba = [], []
                         for train_idx, test_idx in cv_outer.split(X):
                             X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
-                            if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
+                            # if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
+                            X_train, X_test = norm_scale(X_train, X_test)
                             search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=5, scoring=scoring)
                             search.fit(X_train, y_train)
                             if clf_name=='SVM':     preds_proba.append(search.decision_function(X_test)[0])
@@ -346,7 +349,7 @@ def run_netnonnetwork():
 
             scores_dict[f'{cohort}-{drug}-baseline'] = [acc_baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
-    pd.DataFrame.from_dict(dict(sorted(scores_dict.items()))).to_csv(f'results/nestedCV_scores_nonnetwork+network_{goals_code}.csv', index=False)
+    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nestedCV_scores_nonnetwork+network_{goals_code}.csv', index=False)
 
 
 if __name__ == '__main__':
