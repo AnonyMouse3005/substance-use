@@ -8,7 +8,7 @@ import pandas as pd
 import seaborn as sns
 import scipy.stats as ss
 from sklearn.decomposition import PCA
-from sklearn.metrics import roc_auc_score, accuracy_score, recall_score
+from sklearn.metrics import roc_auc_score, accuracy_score, recall_score, precision_score
 from sklearn.base import clone
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.feature_selection import (SelectFromModel, SelectPercentile, chi2)
@@ -406,7 +406,7 @@ def genetic_alg_mod(clf, clf_name, hparams, X_raw, y, cv=10, cv_outer=LeaveOneOu
         else:   preds_proba.append(clf.predict_proba(X_test_new)[:,1][0])
         preds.append(clf.predict(X_test_new)[0])
     
-    return roc_auc_score(y, np.array(preds_proba)), recall_score(y, np.array(preds))
+    return roc_auc_score(y, np.array(preds_proba)), precision_score(y, np.array(preds)), recall_score(y, np.array(preds))
 
 
 @ignore_warnings(category=ConvergenceWarning)
@@ -441,7 +441,7 @@ def genetic_alg(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneO
         else:   preds_proba.append(search.predict_proba(X_test_new)[:,1][0])
         preds.append(search.predict(X_test_new)[0])
     
-    return roc_auc_score(y, np.array(preds_proba)), recall_score(y, np.array(preds))
+    return roc_auc_score(y, np.array(preds_proba)), precision_score(y, np.array(preds)), recall_score(y, np.array(preds))
 
 
 @ignore_warnings(category=ConvergenceWarning)
@@ -463,14 +463,14 @@ def pca(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneOut(), sc
 
         best_pc_idx = np.argmax([i['score'] for i in cv_scores.values()])
         X_train_best, X_test_best = cv_scores[best_pc_idx]['X_train_new'], cv_scores[best_pc_idx]['X_test_new']
-        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True, scoring=scoring)
+        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True, n_jobs=10, scoring=scoring)
         search.fit(X_train_best, y_train)
 
         if clf_name=='SVM':     preds_proba.append(search.decision_function(X_test_best)[0])
         else:   preds_proba.append(search.predict_proba(X_test_best)[:,1][0])
         preds.append(search.predict(X_test_best)[0])
     
-    return roc_auc_score(y, np.array(preds_proba)), recall_score(y, np.array(preds))
+    return roc_auc_score(y, np.array(preds_proba)), precision_score(y, np.array(preds)), recall_score(y, np.array(preds))
 
 
 @ignore_warnings(category=ConvergenceWarning)
@@ -493,14 +493,14 @@ def chi2_filter(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOneO
 
         best_pc_idx = np.argmax([i['score'] for i in cv_scores.values()])
         X_train_best, X_test_best = cv_scores[best_pc_idx]['X_train_new'], cv_scores[best_pc_idx]['X_test_new']
-        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True, scoring=scoring)
+        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True, n_jobs=10, scoring=scoring)
         search.fit(X_train_best, y_train)
 
         if clf_name=='SVM':     preds_proba.append(search.decision_function(X_test_best)[0])
         else:   preds_proba.append(search.predict_proba(X_test_best)[:,1][0])
         preds.append(search.predict(X_test_best)[0])
     
-    return roc_auc_score(y, np.array(preds_proba)), recall_score(y, np.array(preds))
+    return roc_auc_score(y, np.array(preds_proba)), precision_score(y, np.array(preds)), recall_score(y, np.array(preds))
 
 
 @ignore_warnings(category=ConvergenceWarning)
@@ -524,14 +524,14 @@ def thresholding(clf, clf_name, hparams_grid, X_raw, y, cv=10, cv_outer=LeaveOne
 
         best_pc_idx = np.argmax([i['score'] for i in cv_scores.values()])
         X_train_best, X_test_best = cv_scores[best_pc_idx]['X_train_new'], cv_scores[best_pc_idx]['X_test_new']
-        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True, scoring=scoring)
+        search = GridSearchCV(clf, param_grid=hparams_grid, cv=cv, refit=True, n_jobs=10, scoring=scoring)
         search.fit(X_train_best, y_train)
 
         if clf_name=='SVM':     preds_proba.append(search.decision_function(X_test_best)[0])
         else:   preds_proba.append(search.predict_proba(X_test_best)[:,1][0])
         preds.append(search.predict(X_test_best)[0])
     
-    return roc_auc_score(y, np.array(preds_proba)), recall_score(y, np.array(preds))
+    return roc_auc_score(y, np.array(preds_proba)), precision_score(y, np.array(preds)), recall_score(y, np.array(preds))
 
 
 def handpick_features(drug, X_df):

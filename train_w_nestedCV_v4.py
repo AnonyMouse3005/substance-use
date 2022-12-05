@@ -1,4 +1,4 @@
-# %% This version report AUROC (also objective AUROC while cv-ing), also fixing data
+# %% This version report AUROC, precision, recall (also objective/scoring of choice while cv-ing), also fixing data
 import ast
 import json
 import multiprocessing
@@ -14,7 +14,7 @@ from joblib import Parallel, delayed
 from scipy import stats
 from sklearn.datasets import make_multilabel_classification
 from sklearn.decomposition import PCA
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.feature_selection import (SelectFromModel, SelectPercentile, chi2,
@@ -22,7 +22,7 @@ from sklearn.feature_selection import (SelectFromModel, SelectPercentile, chi2,
 from sklearn.impute import IterativeImputer, SimpleImputer
 from sklearn.inspection import permutation_importance
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
-from sklearn.metrics import RocCurveDisplay, roc_auc_score, recall_score
+from sklearn.metrics import RocCurveDisplay, roc_auc_score, recall_score, precision_score
 from sklearn.model_selection import *
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.pipeline import Pipeline
@@ -31,7 +31,9 @@ from sklearn.svm import SVC, LinearSVC
 from sklearn.tree import DecisionTreeClassifier, export_text, plot_tree
 from sklearn.utils._testing import ignore_warnings
 from tqdm import tqdm
+from xgboost import XGBClassifier
 
+import helper
 from helper import *
 
 
@@ -131,7 +133,6 @@ def case_var_delete_v3(cohort, drug, thresh=0.9):  # delete case and/or variable
     imp = SimpleImputer(missing_values=np.nan, strategy='most_frequent', verbose=100)
     X_imp = imp.fit_transform(Xenc_df)
     X_imp_df = pd.DataFrame(X_imp, columns=Xenc_df.columns)
-    print(X_imp_df.shape)
 
     return X_imp_df.to_numpy(), y, X_imp_df, dep_var_full, list(X_drop_df.index)  # last 2 outputs only needed when including network features
 
@@ -150,6 +151,7 @@ def run_nonnetwork():
             scores_dict[f'{cohort}-{drug}-fgroup'] = []
             for clf_name in clf_dict.keys():
                 scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'] = []
+                scores_dict[f'{cohort}-{drug}-{clf_name}-precision'] = []
                 scores_dict[f'{cohort}-{drug}-{clf_name}-recall'] = []
 
             # Group features
@@ -171,28 +173,42 @@ def run_nonnetwork():
                         preds, preds_proba = [], []
                         for train_idx, test_idx in cv_outer.split(X):
                             X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
-                            # if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
                             X_train, X_test = norm_scale(X_train, X_test)
-                            search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=5, scoring=scoring)
+                            search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=10, scoring=scoring)
                             search.fit(X_train, y_train)
                             if clf_name=='SVM':     preds_proba.append(search.decision_function(X_test)[0])
                             else:   preds_proba.append(search.predict_proba(X_test)[:,1][0])
                             preds.append(search.predict(X_test)[0])
-                        scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(roc_auc_score(y, np.array(preds_proba)))
-                        scores_dict[f'{cohort}-{drug}-{clf_name}-recall'].append(recall_score(y, np.array(preds)))
+                        auroc, precision, recall = roc_auc_score(y, np.array(preds_proba)), precision_score(y, np.array(preds)), recall_score(y, np.array(preds))
+                        scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(auroc)
+                        scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(precision)
+                        scores_dict[f'{cohort}-{drug}-{clf_name}-recall'].append(recall)
+                        print(f'{gname}-{clf_name}: AUROC: {auroc:.2f}/0.5, precision: {precision:.2f}/0.5, recall: {recall:.2f}/0.5')
 
             # various feature selection methods
-            for m_name in methods:
-                if m_name == 'manual':  continue
+            for m_name in [m for m in methods if m != 'manual']:
                 scores_dict[f'{cohort}-{drug}-fgroup'].append(m_name)
+                fmethod = getattr(helper, m_name)
                 for clf_name, clf in clf_dict.items():
                     print(f'Cohort {cohort}, {drug}: start running {m_name} for {clf_name}')
-                    if m_name == 'thresholding':    auroc, recall = thresholding(clf, clf_name, clf_param_grid[clf_name], X_imp, y, cv_inner, cv_outer, scoring)
-                    if m_name == 'chi2':    auroc, recall = chi2_filter(clf, clf_name, clf_param_grid[clf_name], X_imp, y, cv_inner, cv_outer, scoring)
-                    if m_name == 'pca':    auroc, recall = pca(clf, clf_name, clf_param_grid[clf_name], X_imp, y, cv_inner, cv_outer, scoring)
-                    if m_name == "GA":     auroc, recall = genetic_alg(clf, clf_name, clf_param_grid[clf_name], X_imp, y, cv_inner, cv_outer, scoring)
-                    if m_name == "GAmod":   auroc, recall = genetic_alg_mod(clf, clf_name, clf_params[clf_name], X_imp, y, cv_inner, cv_outer, scoring)
+                    if clf_name == 'GB':
+                        aurocs, precisions, recalls = [], [], []
+                        for i in range(30):
+                            setattr(clf, 'random_state', i)
+                            a, p, r = fmethod(clf, clf_name, clf_param_grid[clf_name], X_imp, y, cv_inner, cv_outer, scoring)
+                            print(f'{m_name}-{clf_name} (i = {i+1}): AUROC: {a:.2f}/0.5, precision: {p:.2f}/0.5, recall: {r:.2f}/0.5')
+                            aurocs.append(a)
+                            precisions.append(p)
+                            recalls.append(r)
+                        auroc, precision, recall = np.mean(aurocs), np.mean(precisions), np.mean(recalls)
+                        auroc_std, precision_std, recall_std = np.std(aurocs), np.std(precisions), np.std(recalls)
+                        print(f'{m_name}-{clf_name}: AUROC: {auroc:.2f}+-{auroc_std:.2f}/0.5, precision: {precision:.2f}+-{precision_std:.2f}/0.5, recall: {recall:.2f}+-{recall_std:.2f}/0.5')
+                    else:
+                        auroc, precision, recall = fmethod(clf, clf_name, clf_param_grid[clf_name], X_imp, y, cv_inner, cv_outer, scoring)
+                        print(f'{m_name}-{clf_name}: AUROC: {auroc:.2f}/0.5, precision: {precision:.2f}/0.5, recall: {recall:.2f}/0.5')
+
                     scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(auroc)
+                    scores_dict[f'{cohort}-{drug}-{clf_name}-precision'].append(precision)
                     scores_dict[f'{cohort}-{drug}-{clf_name}-recall'].append(recall)
 
             scores_dict[f'{cohort}-{drug}-baseline'] = [acc_baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
@@ -240,15 +256,17 @@ def run_network():
                         preds, preds_proba = [], []
                         for train_idx, test_idx in cv_outer.split(X):
                             X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
-                            # if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
                             X_train, X_test = norm_scale(X_train, X_test)
-                            search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=5, scoring=scoring)
+                            search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=10, scoring=scoring)
                             search.fit(X_train, y_train)
                             if clf_name=='SVM':     preds_proba.append(search.decision_function(X_test)[0])
                             else:   preds_proba.append(search.predict_proba(X_test)[:,1][0])
                             preds.append(search.predict(X_test)[0])
-                        scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(roc_auc_score(y, np.array(preds_proba)))
-                        scores_dict[f'{cohort}-{drug}-{clf_name}-recall'].append(recall_score(y, np.array(preds)))
+                        auroc, precision, recall = roc_auc_score(y, np.array(preds_proba)), precision_score(y, np.array(preds)), recall_score(y, np.array(preds))
+                        scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(auroc)
+                        scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(precision)
+                        scores_dict[f'{cohort}-{drug}-{clf_name}-recall'].append(recall)
+                        print(f'{gname}-{clf_name}: AUROC: {auroc:.2f}/0.5, precision: {precision:.2f}/0.5, recall: {recall:.2f}/0.5')
 
             # various feature selection methods
             for m_name in methods:
@@ -256,13 +274,15 @@ def run_network():
                 scores_dict[f'{cohort}-{drug}-fgroup'].append(m_name)
                 for clf_name, clf in clf_dict.items():
                     print(f'Cohort {cohort}, {drug}: start running {m_name} for {clf_name}')
-                    if m_name == 'thresholding':    auroc, recall = thresholding(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer, scoring)
-                    if m_name == 'chi2':    auroc, recall = chi2_filter(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer, scoring)
-                    if m_name == 'pca':    auroc, recall = pca(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer, scoring)
-                    if m_name == "GA":     auroc, recall = genetic_alg(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer, scoring)
-                    if m_name == "GAmod":   auroc, recall = genetic_alg_mod(clf, clf_name, clf_params[clf_name], X_np, y, cv_inner, cv_outer, scoring)
+                    if m_name == 'thresholding':    auroc, precision, recall = thresholding(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer, scoring)
+                    if m_name == 'chi2':    auroc, precision, recall = chi2_filter(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer, scoring)
+                    if m_name == 'pca':    auroc, precision, recall = pca(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer, scoring)
+                    if m_name == "GA":     auroc, precision, recall = genetic_alg(clf, clf_name, clf_param_grid[clf_name], X_np, y, cv_inner, cv_outer, scoring)
+                    if m_name == "GAmod":   auroc, precision, recall = genetic_alg_mod(clf, clf_name, clf_params[clf_name], X_np, y, cv_inner, cv_outer, scoring)
                     scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(auroc)
+                    scores_dict[f'{cohort}-{drug}-{clf_name}-precision'].append(precision)
                     scores_dict[f'{cohort}-{drug}-{clf_name}-recall'].append(recall)
+                    print(f'{m_name}-{clf_name}: AUROC: {auroc:.2f}/0.5, precision: {precision:.2f}/0.5, recall: {recall:.2f}/0.5')
 
             scores_dict[f'{cohort}-{drug}-baseline'] = [acc_baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
@@ -323,15 +343,17 @@ def run_netnonnetwork():
                         preds, preds_proba = [], []
                         for train_idx, test_idx in cv_outer.split(X):
                             X_train, y_train, X_test, y_test = X[train_idx], y[train_idx], X[test_idx], y[test_idx]
-                            # if clf_name not in ['DT','RF','GB']:    X_train, X_test = norm_scale(X_train, X_test)
                             X_train, X_test = norm_scale(X_train, X_test)
-                            search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=5, scoring=scoring)
+                            search = GridSearchCV(clf, param_grid=clf_param_grid[clf_name], cv=cv_inner, refit=True, n_jobs=10, scoring=scoring)
                             search.fit(X_train, y_train)
                             if clf_name=='SVM':     preds_proba.append(search.decision_function(X_test)[0])
                             else:   preds_proba.append(search.predict_proba(X_test)[:,1][0])
                             preds.append(search.predict(X_test)[0])
-                        scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(roc_auc_score(y, np.array(preds_proba)))
-                        scores_dict[f'{cohort}-{drug}-{clf_name}-recall'].append(recall_score(y, np.array(preds)))
+                        auroc, precision, recall = roc_auc_score(y, np.array(preds_proba)), precision_score(y, np.array(preds)), recall_score(y, np.array(preds))
+                        scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(auroc)
+                        scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(precision)
+                        scores_dict[f'{cohort}-{drug}-{clf_name}-recall'].append(recall)
+                        print(f'{gname}-{clf_name}: AUROC: {auroc:.2f}/0.5, precision: {precision:.2f}/0.5, recall: {recall:.2f}/0.5')
 
             # various feature selection methods
             for m_name in methods:
@@ -339,13 +361,15 @@ def run_netnonnetwork():
                 scores_dict[f'{cohort}-{drug}-fgroup'].append(m_name)
                 for clf_name, clf in clf_dict.items():
                     print(f'Cohort {cohort}, {drug}: start running {m_name} for {clf_name}')
-                    if m_name == 'thresholding':    auroc, recall = thresholding(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer, scoring)
-                    if m_name == 'chi2':    auroc, recall = chi2_filter(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer, scoring)
-                    if m_name == 'pca':    auroc, recall = pca(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer, scoring)
-                    if m_name == "GA":     auroc, recall = genetic_alg(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer, scoring)
-                    if m_name == "GAmod":   auroc, recall = genetic_alg_mod(clf, clf_name, clf_params[clf_name], X_all, y, cv_inner, cv_outer, scoring)
+                    if m_name == 'thresholding':    auroc, precision, recall = thresholding(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer, scoring)
+                    if m_name == 'chi2':    auroc, precision, recall = chi2_filter(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer, scoring)
+                    if m_name == 'pca':    auroc, precision, recall = pca(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer, scoring)
+                    if m_name == "GA":     auroc, precision, recall = genetic_alg(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer, scoring)
+                    if m_name == "GAmod":   auroc, precision, recall = genetic_alg_mod(clf, clf_name, clf_params[clf_name], X_all, y, cv_inner, cv_outer, scoring)
                     scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(auroc)
+                    scores_dict[f'{cohort}-{drug}-{clf_name}-precision'].append(precision)
                     scores_dict[f'{cohort}-{drug}-{clf_name}-recall'].append(recall)
+                    print(f'{m_name}-{clf_name}: AUROC: {auroc:.2f}/0.5, precision: {precision:.2f}/0.5, recall: {recall:.2f}/0.5')
 
             scores_dict[f'{cohort}-{drug}-baseline'] = [acc_baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
 
@@ -376,6 +400,7 @@ if __name__ == '__main__':
     with open(sys.argv[4], 'r') as f:  # load dict containing lists of cohorts, drugs, and methods to be investigated
         goals = json.load(f)
     cohorts, drugs, methods, clf_list, scoring = goals["cohorts"], goals["drugs"], goals["methods"], goals["clf_list"], goals["scoring"]
+    print(f'Configs: {goals}')
 
     with open('saved-vars/labelings_non-network.json', 'r') as f:
         nnw_labelings = json.load(f)
@@ -414,6 +439,8 @@ if __name__ == '__main__':
         'SVM': SVC(cache_size=1000),
         'RF': RandomForestClassifier(),
         'GB': GradientBoostingClassifier(),
+        'AB': AdaBoostClassifier(),
+        'XGB': XGBClassifier(),
     }
     clf_params = {
         'LG_L1': {'names': ['C'], 'range': [(0.001, 1000)], 'bitwidth': 8},
@@ -430,6 +457,8 @@ if __name__ == '__main__':
         'SVM': dict(gamma=np.logspace(-4,2,num=7), C=np.logspace(-3,3,num=7)),
         'RF': dict(max_depth=[3,5,7,10,None]),
         'GB': dict(max_depth=[3,5,7,10]),
+        'AB': dict(n_estimators=[25,50,100]),
+        'XGB': dict(max_depth=[3,5,7,10]),
     }
     clf_dict = {clf_name: clf for clf_name, clf in clf_choices.items() if clf_name in clf_list}
     cv_inner = int(goals["cv_inner"])
