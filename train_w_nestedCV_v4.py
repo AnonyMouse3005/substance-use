@@ -181,7 +181,7 @@ def run_nonnetwork():
                             preds.append(search.predict(X_test)[0])
                         auroc, precision, recall = roc_auc_score(y, np.array(preds_proba)), precision_score(y, np.array(preds)), recall_score(y, np.array(preds))
                         scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(auroc)
-                        scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(precision)
+                        scores_dict[f'{cohort}-{drug}-{clf_name}-precision'].append(precision)
                         scores_dict[f'{cohort}-{drug}-{clf_name}-recall'].append(recall)
                         print(f'{gname}-{clf_name}: AUROC: {auroc:.2f}/0.5, precision: {precision:.2f}/0.5, recall: {recall:.2f}/0.5')
 
@@ -196,7 +196,7 @@ def run_nonnetwork():
                         for i in range(30):
                             setattr(clf, 'random_state', i)
                             a, p, r = fmethod(clf, clf_name, clf_param_grid[clf_name], X_imp, y, cv_inner, cv_outer, scoring)
-                            print(f'{m_name}-{clf_name} (i = {i+1}): AUROC: {a:.2f}/0.5, precision: {p:.2f}/0.5, recall: {r:.2f}/0.5')
+                            print(f'{m_name}-{clf_name} (random_state = {i}): AUROC: {a:.2f}/0.5, precision: {p:.2f}/0.5, recall: {r:.2f}/0.5')
                             aurocs.append(a)
                             precisions.append(p)
                             recalls.append(r)
@@ -376,6 +376,91 @@ def run_netnonnetwork():
     pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nestedCV_scores_nonnetwork+network_{goals_code}.csv', index=False)
 
 
+def run_netnonnetwork_v2():
+    scores_dict = {}
+    for cohort in cohorts:
+        for drug in drugs:
+
+            print(f'At Cohort {cohort}, {drug} using network + non-network features')
+
+            #---------------------------------- Non-network ------------------------------------------------------
+            X_imp, y, _, dep_var_full, rows_idx = case_var_delete_v3(cohort, drug)  # df with dropped rows and columns if too much missingness
+
+            #---------------------------------- Network ------------------------------------------------------
+            if cohort == 1:     net_df = C1W1net_df
+            elif cohort == 2:   net_df = C2W1net_df
+            elif cohort == '1+2':   net_df = pd.concat([C1W1net_df, C2W1net_df], axis=0)
+            alters_info = {'n_nodes': [], 'n_codrug_nodes': [], 'ratio': []}  # each list has N entries (one for each participant)
+
+            for _, row in net_df.iterrows():  # for each row i.e., participant
+                n_nodes = 0
+                n_codrug_nodes = 0
+                
+                for a in alters:  # for each alter
+                    alter_data = [row[v] for v in net_df.columns[net_df.columns.str.endswith(a)]]
+                    if not np.isnan(alter_data[:-1]).all():  # node exists if info of alter is not all nan
+                        n_nodes += 1
+                        codrug_var = f'NSX10{a}' if a in NS_alters else f'NDX8{a}'
+                        cate_mappings = cate_mappings_NS if a in NS_alters else cate_mappings_ND
+                        if row[codrug_var] > min(list(map(int, cate_mappings[codrug_var].keys()))):
+                            n_codrug_nodes += 1
+                        
+                alters_info['n_nodes'].append(n_nodes)
+                alters_info['n_codrug_nodes'].append(n_codrug_nodes)
+                try:    ratio = n_codrug_nodes/n_nodes
+                except ZeroDivisionError:   ratio = 0
+                alters_info['ratio'].append(ratio)
+            
+            ratios = alters_info['ratio']
+            net_df = pd.DataFrame({'ratio': ratios, 'pred': dep_var_full})
+            Xnet_df = net_df[net_df['pred'].notna()].drop('pred', axis=1)  # drop rows where prediction var is missing
+            Xnet_df.reset_index(drop=True, inplace=True)
+            Xnet_df = Xnet_df.loc[rows_idx]  # drop rows that have been dropped by case_var_delete
+            X_np = Xnet_df.to_numpy()
+
+            #-------------------------------------------------------------------------------------------
+            X_all = np.concatenate((X_imp, X_np), axis=1)
+            
+
+            scores_dict[f'{cohort}-{drug}-fgroup'] = []
+            for clf_name in clf_dict.keys():
+                scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'] = []
+                scores_dict[f'{cohort}-{drug}-{clf_name}-precision'] = []
+                scores_dict[f'{cohort}-{drug}-{clf_name}-recall'] = []
+
+            acc_baseline = stats.mode(y)[1][0]/len(y)
+
+            # various feature selection methods
+            for m_name in methods:
+                scores_dict[f'{cohort}-{drug}-fgroup'].append(m_name)
+                fmethod = getattr(helper, m_name)
+                for clf_name, clf in clf_dict.items():
+                    print(f'Cohort {cohort}, {drug}: start running {m_name} for {clf_name}')
+                    if clf_name == 'GB':
+                        aurocs, precisions, recalls = [], [], []
+                        for i in range(30):
+                            setattr(clf, 'random_state', i)
+                            a, p, r = fmethod(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer, scoring)
+                            print(f'{m_name}-{clf_name} (random_state = {i}): AUROC: {a:.2f}/0.5, precision: {p:.2f}/0.5, recall: {r:.2f}/0.5')
+                            aurocs.append(a)
+                            precisions.append(p)
+                            recalls.append(r)
+                        auroc, precision, recall = np.mean(aurocs), np.mean(precisions), np.mean(recalls)
+                        auroc_std, precision_std, recall_std = np.std(aurocs), np.std(precisions), np.std(recalls)
+                        print(f'{m_name}-{clf_name}: AUROC: {auroc:.2f}+-{auroc_std:.2f}/0.5, precision: {precision:.2f}+-{precision_std:.2f}/0.5, recall: {recall:.2f}+-{recall_std:.2f}/0.5')
+                    else:
+                        auroc, precision, recall = fmethod(clf, clf_name, clf_param_grid[clf_name], X_all, y, cv_inner, cv_outer, scoring)
+                        print(f'{m_name}-{clf_name}: AUROC: {auroc:.2f}/0.5, precision: {precision:.2f}/0.5, recall: {recall:.2f}/0.5')
+
+                    scores_dict[f'{cohort}-{drug}-{clf_name}-AUROC'].append(auroc)
+                    scores_dict[f'{cohort}-{drug}-{clf_name}-precision'].append(precision)
+                    scores_dict[f'{cohort}-{drug}-{clf_name}-recall'].append(recall)
+
+            scores_dict[f'{cohort}-{drug}-baseline'] = [acc_baseline] * len(scores_dict[f'{cohort}-{drug}-fgroup'])
+
+    pd.DataFrame.from_dict(scores_dict).to_csv(f'results/nestedCV_scores_nonnetwork+network_{goals_code}.csv', index=False)
+
+
 if __name__ == '__main__':
 
     # %% boilerplate
@@ -390,12 +475,20 @@ if __name__ == '__main__':
     datapath = 'data/original/pre-imputed/'
 
     C1W1nonet_df = pd.read_csv(datapath + 'C1W1_nonnetwork_preimputed.csv')
+    C1W1net_df = pd.read_csv(datapath + 'C1W1_network_preimputed.csv')
     C1pred_df = pd.read_csv(datapath + 'C1_nonnetwork_pred.csv')
     C1W1nonet_vars = list(C1W1nonet_df.columns)
+    C1W1net_vars = list(C1W1net_df.columns)
 
     C2W1nonet_df = pd.read_csv(datapath + '221114/C2W1_nonnetwork_preimputed.csv')
+    C2W1net_df = pd.read_csv(datapath + '221114/C2W1_network_preimputed.csv')
     C2pred_df = pd.read_csv(datapath + '221114/C2_nonnetwork_pred.csv')
     C2W1nonet_vars = list(C2W1nonet_df.columns)
+    C2W1net_vars = list(C2W1net_df.columns)
+
+    alters = tuple('ABCDEFGHIJKLMNOPQR')
+    NS_alters = tuple('ABCDEFGHI')
+    ND_alters = tuple('JKLMNOPQR')
 
     with open(sys.argv[4], 'r') as f:  # load dict containing lists of cohorts, drugs, and methods to be investigated
         goals = json.load(f)
@@ -404,6 +497,11 @@ if __name__ == '__main__':
 
     with open('saved-vars/labelings_non-network.json', 'r') as f:
         nnw_labelings = json.load(f)
+
+    with open('saved-vars/labelings_network.json', 'r') as f:
+        nw_labelings = json.load(f)
+    labelings_NS, labelings_ND = nw_labelings['labelings_NS'], nw_labelings['labelings_ND']
+    cate_mappings_NS, cate_mappings_ND = nw_labelings['cate_mappings_NS'], nw_labelings['cate_mappings_ND']
 
 
     # %% domain-specific feature groupings
@@ -476,6 +574,6 @@ if __name__ == '__main__':
 
     # %% network+nonnetwork features
     if int(sys.argv[3]):
-        run_netnonnetwork()
+        run_netnonnetwork_v2()
         
         
